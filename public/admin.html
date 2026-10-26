@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopEasy - Admin Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header>
+        <nav class="navbar">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <a href="/" class="brand">
+                    <span class="brand-icon">🛍️</span>
+                    <span>ShopEasy</span>
+                </a>
+                <span class="stock-tag tag-in-stock" style="position: static; font-size: 0.75rem;">Admin Portal</span>
+            </div>
+
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link">← Storefront</a></li>
+                <span id="nav-auth-container" class="nav-auth-group">
+                    <!-- Populated by auth.js -->
+                </span>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Access Denied (if not admin) -->
+        <div id="admin-unauth" class="state-box" style="display: none;">
+            <div class="state-icon">🛡️</div>
+            <h2 class="state-title">Administrator Access Required</h2>
+            <p class="state-desc">You must be logged into an authorized administrator account to access this management dashboard.</p>
+            <div style="background: #f1f5f9; padding: 1rem; border-radius: var(--radius-sm); max-width: 400px; margin: 0 auto 1.5rem auto; font-size: 0.85rem; text-align: left;">
+                <strong>Default Demo Admin Credentials:</strong><br>
+                Email: <code>admin@shopeasy.com</code><br>
+                Password: <code>Admin@12345</code>
+            </div>
+            <a href="/login.html?redirect=/admin.html" class="btn-hero" style="font-size: 0.95rem; padding: 0.7rem 1.75rem;">Log In as Admin</a>
+        </div>
+
+        <!-- Main Admin Dashboard Container -->
+        <div id="admin-content" style="display: none;">
+            <!-- Header -->
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+                <div>
+                    <h1 style="font-size: 2.2rem; font-weight: 800; letter-spacing: -0.5px;">Store Management Dashboard</h1>
+                    <p style="color: var(--text-secondary); font-size: 0.95rem;">Monitor real-time sales KPIs, manage product catalogue, and update customer order fulfillment.</p>
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button type="button" class="btn-primary" id="btn-open-add-product" style="width: auto; padding: 0.6rem 1.25rem;">+ New Product</button>
+                    <button type="button" class="btn-secondary" id="btn-open-add-category">+ New Category</button>
+                </div>
+            </div>
+
+            <!-- KPI Metric Cards Grid -->
+            <div class="status-grid" style="margin-bottom: 2.5rem;">
+                <div class="status-card">
+                    <div class="status-icon">💰</div>
+                    <h3 style="font-size: 0.95rem; color: var(--text-secondary); text-transform: uppercase;">Total Platform Sales</h3>
+                    <div id="kpi-sales" style="font-size: 2rem; font-weight: 800; color: var(--primary); margin: 0.5rem 0;">₹0.00</div>
+                    <span class="pill-status pill-success">Live Non-Cancelled Orders</span>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-icon">📦</div>
+                    <h3 style="font-size: 0.95rem; color: var(--text-secondary); text-transform: uppercase;">Total Orders</h3>
+                    <div id="kpi-orders" style="font-size: 2rem; font-weight: 800; color: var(--text-primary); margin: 0.5rem 0;">0</div>
+                    <span class="pill-status pill-info">All Statuses</span>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-icon">🏷️</div>
+                    <h3 style="font-size: 0.95rem; color: var(--text-secondary); text-transform: uppercase;">Active Products</h3>
+                    <div id="kpi-products" style="font-size: 2rem; font-weight: 800; color: var(--text-primary); margin: 0.5rem 0;">0</div>
+                    <span class="pill-status pill-success">Visible in Storefront</span>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-icon">👥</div>
+                    <h3 style="font-size: 0.95rem; color: var(--text-secondary); text-transform: uppercase;">Registered Customers</h3>
+                    <div id="kpi-customers" style="font-size: 2rem; font-weight: 800; color: var(--text-primary); margin: 0.5rem 0;">0</div>
+                    <span class="pill-status pill-info">Customer Accounts</span>
+                </div>
+            </div>
+
+            <!-- Dashboard Navigation Tabs -->
+            <div class="auth-tabs" style="margin-bottom: 1.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                <button type="button" class="auth-tab active" id="tab-btn-orders">Customer Orders (<span id="count-tab-orders">0</span>)</button>
+                <button type="button" class="auth-tab" id="tab-btn-products">Product Inventory (<span id="count-tab-products">0</span>)</button>
+                <button type="button" class="auth-tab" id="tab-btn-categories">Categories</button>
+            </div>
+
+            <!-- ================= TAB 1: ORDERS ================= -->
+            <div id="tab-pane-orders" class="cart-card" style="margin-bottom: 2rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+                    <h2 style="font-size: 1.25rem; font-weight: 700;">Customer Orders</h2>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label for="filter-order-status" style="font-size: 0.85rem; font-weight: 600;">Status Filter:</label>
+                        <select id="filter-order-status" class="form-input" style="width: auto; padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                            <option value="">All Orders</option>
+                            <option value="Placed">Placed</option>
+                            <option value="Shipped">Shipped</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="cart-table">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th>Items</th>
+                                <th>Amount</th>
+                                <th>Payment</th>
+                                <th>Status Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-orders-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= TAB 2: PRODUCTS ================= -->
+            <div id="tab-pane-products" class="cart-card" style="display: none; margin-bottom: 2rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                    <h2 style="font-size: 1.25rem; font-weight: 700;">Product Catalogue Management</h2>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="cart-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-products-tbody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ================= TAB 3: CATEGORIES ================= -->
+            <div id="tab-pane-categories" class="cart-card" style="display: none; margin-bottom: 2rem;">
+                <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;">Product Categories</h2>
+                <div id="categories-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem;">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MODAL: ADD / EDIT PRODUCT ================= -->
+        <div id="modal-product" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 1rem;">
+            <div style="background: white; border-radius: var(--radius-lg); max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 2rem; box-shadow: var(--shadow-lg);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                    <h2 id="modal-prod-title" style="font-size: 1.35rem; font-weight: 800;">Add New Product</h2>
+                    <button type="button" id="btn-close-prod-modal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">✕</button>
+                </div>
+
+                <form id="form-product-modal">
+                    <input type="hidden" id="modal-prod-id">
+
+                    <div class="form-group">
+                        <label class="form-label">Product Name *</label>
+                        <input type="text" id="modal-prod-name" class="form-input" required placeholder="e.g. Wireless Noise Cancelling Earbuds">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Category *</label>
+                        <select id="modal-prod-category" class="form-input" required>
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Price in INR (₹) *</label>
+                            <input type="number" id="modal-prod-price" class="form-input" required step="0.5" min="0" placeholder="e.g. 1999">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Stock Quantity *</label>
+                            <input type="number" id="modal-prod-stock" class="form-input" required min="0" placeholder="e.g. 25">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Product Image URL *</label>
+                        <input type="url" id="modal-prod-image" class="form-input" required placeholder="https://images.unsplash.com/..." value="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Description *</label>
+                        <textarea id="modal-prod-desc" class="form-input" rows="3" required placeholder="Detailed specifications and key features..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="btn-save-product">Save Product</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= MODAL: ADD CATEGORY ================= -->
+        <div id="modal-category" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 1rem;">
+            <div style="background: white; border-radius: var(--radius-lg); max-width: 440px; width: 100%; padding: 2rem; box-shadow: var(--shadow-lg);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+                    <h2 style="font-size: 1.35rem; font-weight: 800;">Add Category</h2>
+                    <button type="button" id="btn-close-cat-modal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">✕</button>
+                </div>
+
+                <form id="form-category-modal">
+                    <div class="form-group">
+                        <label class="form-label">Category Name *</label>
+                        <input type="text" id="modal-cat-name" class="form-input" required placeholder="e.g. Fitness & Sports">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea id="modal-cat-desc" class="form-input" rows="2" placeholder="Brief summary of category..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Create Category</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 ShopEasy Inc. Administrator Control Panel.</p>
+    </footer>
+
+    <!-- Shared Modules -->
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/cart.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const unauthBox = document.getElementById('admin-unauth');
+            const contentBox = document.getElementById('admin-content');
+
+            // 1. Client-Side Authorization Gate
+            if (!auth.isLoggedIn() || !auth.isAdmin()) {
+                unauthBox.style.display = 'block';
+                return;
+            }
+
+            contentBox.style.display = 'block';
+
+            // Tab switching
+            const tabBtnOrders = document.getElementById('tab-btn-orders');
+            const tabBtnProducts = document.getElementById('tab-btn-products');
+            const tabBtnCategories = document.getElementById('tab-btn-categories');
+            const paneOrders = document.getElementById('tab-pane-orders');
+            const paneProducts = document.getElementById('tab-pane-products');
+            const paneCategories = document.getElementById('tab-pane-categories');
+
+            function switchTab(activeBtn, activePane) {
+                [tabBtnOrders, tabBtnProducts, tabBtnCategories].forEach(b => b.classList.remove('active'));
+                [paneOrders, paneProducts, paneCategories].forEach(p => p.style.display = 'none');
+                activeBtn.classList.add('active');
+                activePane.style.display = 'block';
+            }
+
+            tabBtnOrders.addEventListener('click', () => switchTab(tabBtnOrders, paneOrders));
+            tabBtnProducts.addEventListener('click', () => switchTab(tabBtnProducts, paneProducts));
+            tabBtnCategories.addEventListener('click', () => switchTab(tabBtnCategories, paneCategories));
+
+            // Load Dashboard Overview
+            async function loadStats() {
+                try {
+                    const res = await api.request('/admin/stats');
+                    if (res.success && res.stats) {
+                        const s = res.stats;
+                        document.getElementById('kpi-sales').textContent = s.formatted_revenue;
+                        document.getElementById('kpi-orders').textContent = s.total_orders;
+                        document.getElementById('kpi-products').textContent = s.total_products;
+                        document.getElementById('kpi-customers').textContent = s.total_customers;
+                        document.getElementById('count-tab-orders').textContent = s.total_orders;
+                        document.getElementById('count-tab-products').textContent = s.total_products;
+                    }
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            }
+
+            // Load Orders Table
+            async function loadOrders(statusFilter = '') {
+                const tbody = document.getElementById('admin-orders-tbody');
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem;">Loading customer orders...</td></tr>';
+
+                try {
+                    const endpoint = statusFilter ? `/admin/orders?status=${encodeURIComponent(statusFilter)}` : '/admin/orders';
+                    const res = await api.request(endpoint);
+                    if (res.success && res.orders) {
+                        tbody.innerHTML = '';
+                        if (res.orders.length === 0) {
+                            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 2rem;">No orders found.</td></tr>';
+                            return;
+                        }
+
+                        res.orders.forEach(order => {
+                            const tr = document.createElement('tr');
+                            const itemsSummary = order.items.map(i => `${escapeHTML(i.product_name)} (×${i.quantity})`).join(', ');
+
+                            tr.innerHTML = `
+                                <td><strong style="color: var(--primary);">${escapeHTML(order.order_number)}</strong></td>
+                                <td style="font-size: 0.85rem; color: var(--text-muted);">${new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                <td>
+                                    <strong>${escapeHTML(order.customer_name)}</strong><br>
+                                    <span style="font-size: 0.78rem; color: var(--text-muted);">${escapeHTML(order.user_email)}</span>
+                                </td>
+                                <td style="font-size: 0.82rem; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHTML(itemsSummary)}">
+                                    ${escapeHTML(itemsSummary)}
+                                </td>
+                                <td><strong>${escapeHTML(order.formatted_total)}</strong></td>
+                                <td><span style="font-size: 0.8rem; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${escapeHTML(order.payment_method)}</span></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <select class="form-input order-status-select" data-id="${order.id}" style="padding: 0.25rem 0.5rem; font-size: 0.82rem; width: auto;">
+                                            <option value="Placed" ${order.status === 'Placed' ? 'selected' : ''}>Placed</option>
+                                            <option value="Shipped" ${order.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
+                                            <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                                            <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                                        </select>
+                                        <button type="button" class="btn-secondary btn-update-order-status" data-id="${order.id}" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">Save</button>
+                                    </div>
+                                </td>
+                            `;
+
+                            // Status save handler
+                            const saveBtn = tr.querySelector('.btn-update-order-status');
+                            const selectEl = tr.querySelector('.order-status-select');
+                            saveBtn.addEventListener('click', async () => {
+                                const newStatus = selectEl.value;
+                                saveBtn.disabled = true;
+                                saveBtn.textContent = '...';
+                                try {
+                                    const updateRes = await api.request(`/admin/orders/${order.id}/status`, {
+                                        method: 'PATCH',
+                                        body: JSON.stringify({ status: newStatus })
+                                    });
+                                    if (updateRes.success) {
+                                        showToast(`Order status updated to "${newStatus}"!`, 'success');
+                                        await loadStats();
+                                    }
+                                } catch (err) {
+                                    showToast(err.message, 'error');
+                                } finally {
+                                    saveBtn.disabled = false;
+                                    saveBtn.textContent = 'Save';
+                                }
+                            });
+
+                            tbody.appendChild(tr);
+                        });
+                    }
+                } catch (err) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="color: var(--danger); text-align:center; padding: 2rem;">${escapeHTML(err.message)}</td></tr>`;
+                }
+            }
+
+            // Order filter change
+            document.getElementById('filter-order-status').addEventListener('change', (e) => {
+                loadOrders(e.target.value);
+            });
+
+            // Load Products Table
+            let allCategoriesList = [];
+            async function loadProducts() {
+                const tbody = document.getElementById('admin-products-tbody');
+                try {
+                    const res = await api.request('/admin/products');
+                    if (res.success && res.products) {
+                        tbody.innerHTML = '';
+                        res.products.forEach(p => {
+                            const tr = document.createElement('tr');
+                            const statusPill = p.is_active === 1 
+                                ? `<span class="stock-tag tag-in-stock" style="position: static;">Active</span>`
+                                : `<span class="stock-tag tag-out-of-stock" style="position: static;">Inactive</span>`;
+
+                            tr.innerHTML = `
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <img src="${p.image_url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;" onerror="this.src='https://placehold.co/40';">
+                                        <div>
+                                            <strong>${escapeHTML(p.name)}</strong>
+                                            <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHTML(p.slug)}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>${escapeHTML(p.category_name)}</td>
+                                <td><strong>${escapeHTML(p.formatted_price)}</strong></td>
+                                <td>
+                                    <input type="number" class="form-input prod-quick-stock" data-id="${p.id}" value="${p.stock_quantity}" min="0" style="width: 70px; padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                                </td>
+                                <td>${statusPill}</td>
+                                <td>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <button type="button" class="btn-secondary btn-edit-prod" data-id="${p.id}" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">Edit</button>
+                                        <button type="button" class="btn-logout btn-del-prod" data-id="${p.id}" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">Deactivate</button>
+                                    </div>
+                                </td>
+                            `;
+
+                            // Quick stock change on blur
+                            const stockInput = tr.querySelector('.prod-quick-stock');
+                            stockInput.addEventListener('change', async () => {
+                                const newStock = parseInt(stockInput.value, 10);
+                                if (!isNaN(newStock) && newStock >= 0) {
+                                    try {
+                                        await api.request(`/admin/products/${p.id}`, {
+                                            method: 'PUT',
+                                            body: JSON.stringify({ stock_quantity: newStock })
+                                        });
+                                        showToast(`Updated stock for "${p.name}" to ${newStock}`, 'success');
+                                    } catch (err) {
+                                        showToast(err.message, 'error');
+                                    }
+                                }
+                            });
+
+                            // Edit button
+                            tr.querySelector('.btn-edit-prod').addEventListener('click', () => {
+                                openEditProductModal(p);
+                            });
+
+                            // Delete/Deactivate button
+                            tr.querySelector('.btn-del-prod').addEventListener('click', async () => {
+                                if (confirm(`Are you sure you want to delete/deactivate "${p.name}"?`)) {
+                                    try {
+                                        const delRes = await api.request(`/admin/products/${p.id}`, { method: 'DELETE' });
+                                        showToast(delRes.message, 'info');
+                                        await loadProducts();
+                                        await loadStats();
+                                    } catch (err) {
+                                        showToast(err.message, 'error');
+                                    }
+                                }
+                            });
+
+                            tbody.appendChild(tr);
+                        });
+                    }
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            }
+
+            // Load Categories
+            async function loadCategories() {
+                const list = document.getElementById('categories-list');
+                const modalSelect = document.getElementById('modal-prod-category');
+
+                try {
+                    const res = await api.getCategories();
+                    if (res.success && res.categories) {
+                        allCategoriesList = res.categories;
+                        list.innerHTML = '';
+                        modalSelect.innerHTML = '';
+
+                        res.categories.forEach(cat => {
+                            // Category card
+                            const card = document.createElement('div');
+                            card.className = 'status-card';
+                            card.innerHTML = `
+                                <h3>${escapeHTML(cat.name)}</h3>
+                                <p style="font-size: 0.82rem; color: var(--text-muted);">${escapeHTML(cat.description || 'No description.')}</p>
+                                <span class="pill-status pill-info">${cat.product_count} Products</span>
+                            `;
+                            list.appendChild(card);
+
+                            // Modal select option
+                            const opt = document.createElement('option');
+                            opt.value = cat.id;
+                            opt.textContent = cat.name;
+                            modalSelect.appendChild(opt);
+                        });
+                    }
+                } catch (err) {
+                    console.warn(err);
+                }
+            }
+
+            // Product Modal Controls
+            const modalProduct = document.getElementById('modal-product');
+            const formProductModal = document.getElementById('form-product-modal');
+            const btnOpenAddProduct = document.getElementById('btn-open-add-product');
+            const btnCloseProdModal = document.getElementById('btn-close-prod-modal');
+            const modalProdTitle = document.getElementById('modal-prod-title');
+
+            btnOpenAddProduct.addEventListener('click', () => {
+                modalProdTitle.textContent = 'Add New Product';
+                document.getElementById('modal-prod-id').value = '';
+                formProductModal.reset();
+                modalProduct.style.display = 'flex';
+            });
+
+            btnCloseProdModal.addEventListener('click', () => {
+                modalProduct.style.display = 'none';
+            });
+
+            function openEditProductModal(p) {
+                modalProdTitle.textContent = 'Edit Product';
+                document.getElementById('modal-prod-id').value = p.id;
+                document.getElementById('modal-prod-name').value = p.name;
+                document.getElementById('modal-prod-category').value = p.category_id;
+                document.getElementById('modal-prod-price').value = p.price_rupees;
+                document.getElementById('modal-prod-stock').value = p.stock_quantity;
+                document.getElementById('modal-prod-image').value = p.image_url;
+                document.getElementById('modal-prod-desc').value = p.description;
+                modalProduct.style.display = 'flex';
+            }
+
+            formProductModal.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const prodId = document.getElementById('modal-prod-id').value;
+                const submitBtn = document.getElementById('btn-save-product');
+
+                const payload = {
+                    name: document.getElementById('modal-prod-name').value.trim(),
+                    category_id: parseInt(document.getElementById('modal-prod-category').value, 10),
+                    price_rupees: parseFloat(document.getElementById('modal-prod-price').value),
+                    stock_quantity: parseInt(document.getElementById('modal-prod-stock').value, 10),
+                    image_url: document.getElementById('modal-prod-image').value.trim(),
+                    description: document.getElementById('modal-prod-desc').value.trim()
+                };
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving...';
+
+                try {
+                    if (prodId) {
+                        // Update
+                        await api.request(`/admin/products/${prodId}`, {
+                            method: 'PUT',
+                            body: JSON.stringify(payload)
+                        });
+                        showToast('Product updated successfully!', 'success');
+                    } else {
+                        // Create
+                        await api.request('/admin/products', {
+                            method: 'POST',
+                            body: JSON.stringify(payload)
+                        });
+                        showToast('New product added to catalogue!', 'success');
+                    }
+                    modalProduct.style.display = 'none';
+                    await loadProducts();
+                    await loadStats();
+                } catch (err) {
+                    showToast(err.message, 'error');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Save Product';
+                }
+            });
+
+            // Category Modal Controls
+            const modalCategory = document.getElementById('modal-category');
+            const formCategoryModal = document.getElementById('form-category-modal');
+            const btnOpenAddCategory = document.getElementById('btn-open-add-category');
+            const btnCloseCatModal = document.getElementById('btn-close-cat-modal');
+
+            btnOpenAddCategory.addEventListener('click', () => {
+                formCategoryModal.reset();
+                modalCategory.style.display = 'flex';
+            });
+
+            btnCloseCatModal.addEventListener('click', () => {
+                modalCategory.style.display = 'none';
+            });
+
+            formCategoryModal.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('modal-cat-name').value.trim();
+                const description = document.getElementById('modal-cat-desc').value.trim();
+
+                try {
+                    await api.request('/admin/categories', {
+                        method: 'POST',
+                        body: JSON.stringify({ name, description })
+                    });
+                    showToast(`Category "${name}" created!`, 'success');
+                    modalCategory.style.display = 'none';
+                    await loadCategories();
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            });
+
+            // Initial Data Load
+            await Promise.all([
+                loadStats(),
+                loadOrders(),
+                loadProducts(),
+                loadCategories()
+            ]);
+        });
+    </script>
+</body>
+</html>

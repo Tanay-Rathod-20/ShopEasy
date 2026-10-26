@@ -21,42 +21,36 @@ function buildTrackingInfo(order) {
         year: 'numeric'
     });
 
-    const trackingNumber = `SE-TRK-${(order.id * 18471 + 100000).toString()}`;
-    const courierPartner = 'ShopEasy Express Logistics';
-
-    // Status mapping to numeric milestone
-    // 1: Placed, 2: Shipped, 3: Delivered, -1: Cancelled
+    const trackingNumber = `SE-DEMO-${(order.id * 18471 + 100000).toString()}`;
+    const courierPartner = 'ShopEasy Logistics (Simulated Demo Carrier)';
     const status = order.status;
 
+    // Strict 1-to-1 milestone mapping based on verified order status
     const steps = [
         {
             key: 'placed',
-            title: 'Order Confirmed',
-            desc: 'Your order was successfully placed and verified.',
+            title: 'Order Placed',
+            desc: 'Order received and recorded in system.',
             timestamp: orderDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
             completed: ['Placed', 'Shipped', 'Delivered'].includes(status),
             active: status === 'Placed'
         },
         {
-            key: 'processing',
-            title: 'Packed & Processed',
-            desc: 'Items inspected and packed at ShopEasy Fulfillment Hub.',
-            timestamp: ['Shipped', 'Delivered'].includes(status) ? 'Completed' : 'Estimated in 24 hrs',
-            completed: ['Shipped', 'Delivered'].includes(status),
-            active: status === 'Placed'
-        },
-        {
             key: 'shipped',
             title: 'Shipped (In Transit)',
-            desc: `Handed over to ${courierPartner}. Waybill #${trackingNumber}`,
-            timestamp: ['Shipped', 'Delivered'].includes(status) ? 'In Transit' : 'Pending dispatch',
+            desc: status === 'Placed' 
+                ? 'Awaiting fulfillment & courier dispatch.' 
+                : `Handed over to ${courierPartner}. Waybill #${trackingNumber}`,
+            timestamp: ['Shipped', 'Delivered'].includes(status) ? 'Dispatched' : 'Pending dispatch',
             completed: ['Shipped', 'Delivered'].includes(status),
             active: status === 'Shipped'
         },
         {
             key: 'delivered',
             title: 'Delivered',
-            desc: status === 'Delivered' ? 'Package safely delivered to your address.' : `Expected delivery by ${formattedExpected}`,
+            desc: status === 'Delivered' 
+                ? 'Package successfully handed over to customer.' 
+                : `Estimated delivery by ${formattedExpected} (Demo estimate).`,
             timestamp: status === 'Delivered' ? 'Delivered' : formattedExpected,
             completed: status === 'Delivered',
             active: status === 'Delivered'
@@ -67,7 +61,7 @@ function buildTrackingInfo(order) {
         steps.push({
             key: 'cancelled',
             title: 'Order Cancelled',
-            desc: 'This order was cancelled.',
+            desc: 'This order was marked as cancelled.',
             timestamp: 'Cancelled',
             completed: true,
             active: true
@@ -79,6 +73,7 @@ function buildTrackingInfo(order) {
         courier: courierPartner,
         estimated_delivery: formattedExpected,
         current_status: status,
+        is_demo: true,
         steps
     };
 }

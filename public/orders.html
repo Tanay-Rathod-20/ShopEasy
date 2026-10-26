@@ -202,11 +202,11 @@
                                 <div id="track-${order.id}" class="tracking-box" style="display: ${shouldAutoExpand ? 'block' : 'none'};">
                                     <div class="tracking-header">
                                         <div>
-                                            <span style="font-size: 0.85rem; color: var(--text-secondary);">Carrier: <strong>${escapeHTML(trk.courier || 'ShopEasy Express')}</strong></span>
-                                            <span class="tracking-id-badge" style="margin-left: 0.5rem;">Waybill: ${escapeHTML(trk.tracking_number || '')}</span>
+                                            <span style="font-size: 0.85rem; color: var(--text-secondary);">Carrier: <strong>${escapeHTML(trk.courier || 'ShopEasy Logistics (Simulated Demo Carrier)')}</strong></span>
+                                            <span class="tracking-id-badge" style="margin-left: 0.5rem;">Waybill: ${escapeHTML(trk.tracking_number || '')} (Demo)</span>
                                         </div>
                                         <div style="font-size: 0.85rem;">
-                                            Estimated Delivery: <strong style="color: var(--success);">${escapeHTML(trk.estimated_delivery || '3-4 Business Days')}</strong>
+                                            Estimated Delivery: <strong style="color: var(--success);">${escapeHTML(trk.estimated_delivery || '3-4 Days')}</strong> <span style="font-size: 0.75rem; color: var(--text-muted);">(Demo Estimate)</span>
                                         </div>
                                     </div>
 
@@ -217,7 +217,7 @@
 
                                     <!-- Viva Demonstration Status Simulator -->
                                     <div style="margin-top: 1.5rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
-                                        <span>🎓 <strong>Viva Demo:</strong> Test tracking milestone transitions:</span>
+                                        <span>🎓 <strong>Viva Status Simulator:</strong> Simulate package transitions for demonstration:</span>
                                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                                             <select class="form-input sim-status-select" data-id="${order.id}" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;">
                                                 <option value="Placed" ${order.status === 'Placed' ? 'selected' : ''}>Status: Placed</option>
@@ -242,7 +242,11 @@
                                         ${escapeHTML(order.shipping_address)}, ${escapeHTML(order.shipping_city)} - ${escapeHTML(order.shipping_pincode)}
                                     </div>
                                     <div style="text-align: right;">
-                                        <div style="font-size: 0.82rem; color: var(--text-muted);">Paid via ${paymentBadge}</div>
+                                        <div style="font-size: 0.82rem; font-weight: 600; color: ${order.payment_method === 'COD' && order.status !== 'Delivered' ? 'var(--warning)' : 'var(--text-secondary)'};">
+                                            ${order.payment_method === 'COD' 
+                                                ? (order.status === 'Delivered' ? '✓ Cash Collected on Delivery' : '⏳ Payment Due upon Doorstep Delivery')
+                                                : `✓ Paid via ${paymentBadge} (Demo Auth)`}
+                                        </div>
                                         <div style="font-size: 1.4rem; font-weight: 800; color: var(--primary);">
                                             ${escapeHTML(order.formatted_total)}
                                         </div>
