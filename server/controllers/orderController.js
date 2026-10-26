@@ -118,11 +118,15 @@ function createOrder(req, res, next) {
             });
         }
 
-        // 2. Validate Payment Method
+        // 2. Validate Payment Method strictly (reject unsupported methods with 400)
         const validMethods = ['COD', 'UPI', 'CARD', 'NETBANKING'];
-        const paymentMethod = validMethods.includes(reqPaymentMethod.toUpperCase())
-            ? reqPaymentMethod.toUpperCase()
-            : 'COD';
+        const paymentMethod = typeof reqPaymentMethod === 'string' ? reqPaymentMethod.toUpperCase() : '';
+        if (!validMethods.includes(paymentMethod)) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid payment method "${reqPaymentMethod}". Supported methods: ${validMethods.join(', ')}.`
+            });
+        }
 
         // 3. Fetch current cart items with fresh product data
         const cartItems = db.prepare(`
@@ -224,14 +228,14 @@ function createOrder(req, res, next) {
             created_at: newOrder.createdAt
         });
 
-        let paymentLabel = 'Cash on Delivery';
-        if (paymentMethod === 'UPI') paymentLabel = 'Instant UPI';
-        if (paymentMethod === 'CARD') paymentLabel = 'Credit/Debit Card';
-        if (paymentMethod === 'NETBANKING') paymentLabel = 'Net Banking';
+        let successMessage = 'Order placed successfully! Payment due upon doorstep delivery (Cash on Delivery).';
+        if (paymentMethod !== 'COD') {
+            successMessage = `Order placed successfully. Demo payment method (${paymentMethod}) selected — no real payment processed.`;
+        }
 
         return res.status(201).json({
             success: true,
-            message: `Order placed successfully using ${paymentLabel}!`,
+            message: successMessage,
             order: {
                 id: newOrder.orderId,
                 order_number: newOrder.orderNumber,
@@ -240,6 +244,7 @@ function createOrder(req, res, next) {
                 formatted_total: formatINR(newOrder.totalPaise),
                 status: 'Placed',
                 payment_method: paymentMethod,
+                is_demo_payment: paymentMethod !== 'COD',
                 tracking
             }
         });
@@ -359,52 +364,8 @@ function getOrderById(req, res, next) {
     }
 }
 
-/**
- * PATCH /api/orders/:id/status
- * Updates order status ('Placed', 'Shipped', 'Delivered', 'Cancelled')
- */
-function updateOrderStatus(req, res, next) {
-    try {
-        const orderId = req.params.id;
-        const { status } = req.body;
-
-        const validStatuses = ['Placed', 'Shipped', 'Delivered', 'Cancelled'];
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: `Invalid status. Valid values: ${validStatuses.join(', ')}`
-            });
-        }
-
-        const result = db.prepare(`
-            UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? OR order_number = ?
-        `).run(status, orderId, orderId);
-
-        if (result.changes === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Order not found.'
-            });
-        }
-
-        const updatedOrder = db.prepare('SELECT * FROM orders WHERE id = ? OR order_number = ?').get(orderId, orderId);
-
-        return res.status(200).json({
-            success: true,
-            message: `Order status updated to "${status}".`,
-            order: {
-                ...updatedOrder,
-                tracking: buildTrackingInfo(updatedOrder)
-            }
-        });
-    } catch (err) {
-        next(err);
-    }
-}
-
 module.exports = {
     createOrder,
     getCustomerOrders,
-    getOrderById,
-    updateOrderStatus
+    getOrderById
 };

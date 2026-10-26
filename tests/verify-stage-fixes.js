@@ -123,7 +123,14 @@ async function runTests() {
     console.log(`\n========================================`);
     console.log(`Verification Complete: ${passed} PASSED, ${failed} FAILED`);
     console.log(`========================================`);
-    process.exit(failed === 0 ? 0 : 1);
+    if (require.main === module) {
+        process.exit(failed === 0 ? 0 : 1);
+    }
+    return { passed, failed };
 }
 
-runTests();
+if (require.main === module) {
+    runTests();
+}
+
+module.exports = runTests;

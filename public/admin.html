@@ -314,6 +314,35 @@
                             const tr = document.createElement('tr');
                             const itemsSummary = order.items.map(i => `${escapeHTML(i.product_name)} (×${i.quantity})`).join(', ');
 
+                            const isTerminal = ['Delivered', 'Cancelled'].includes(order.status);
+                            let statusActionHtml = '';
+                            if (isTerminal) {
+                                statusActionHtml = `<span class="stock-tag ${order.status === 'Delivered' ? 'tag-in-stock' : 'tag-out-of-stock'}" style="position: static; font-size: 0.82rem;">● ${escapeHTML(order.status)} (Final)</span>`;
+                            } else {
+                                let options = '';
+                                if (order.status === 'Placed') {
+                                    options = `
+                                        <option value="Placed" selected>Placed</option>
+                                        <option value="Shipped">Shipped</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                    `;
+                                } else if (order.status === 'Shipped') {
+                                    options = `
+                                        <option value="Shipped" selected>Shipped</option>
+                                        <option value="Delivered">Delivered</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                    `;
+                                }
+                                statusActionHtml = `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <select class="form-input order-status-select" data-id="${order.id}" style="padding: 0.25rem 0.5rem; font-size: 0.82rem; width: auto;">
+                                            ${options}
+                                        </select>
+                                        <button type="button" class="btn-secondary btn-update-order-status" data-id="${order.id}" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">Save</button>
+                                    </div>
+                                `;
+                            }
+
                             tr.innerHTML = `
                                 <td><strong style="color: var(--primary);">${escapeHTML(order.order_number)}</strong></td>
                                 <td style="font-size: 0.85rem; color: var(--text-muted);">${new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
@@ -325,43 +354,38 @@
                                     ${escapeHTML(itemsSummary)}
                                 </td>
                                 <td><strong>${escapeHTML(order.formatted_total)}</strong></td>
-                                <td><span style="font-size: 0.8rem; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${escapeHTML(order.payment_method)}</span></td>
-                                <td>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                        <select class="form-input order-status-select" data-id="${order.id}" style="padding: 0.25rem 0.5rem; font-size: 0.82rem; width: auto;">
-                                            <option value="Placed" ${order.status === 'Placed' ? 'selected' : ''}>Placed</option>
-                                            <option value="Shipped" ${order.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
-                                            <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
-                                            <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
-                                        </select>
-                                        <button type="button" class="btn-secondary btn-update-order-status" data-id="${order.id}" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">Save</button>
-                                    </div>
-                                </td>
+                                <td><span style="font-size: 0.8rem; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${escapeHTML(order.payment_method)}${order.payment_method !== 'COD' ? ' (Demo)' : ''}</span></td>
+                                <td>${statusActionHtml}</td>
                             `;
 
                             // Status save handler
                             const saveBtn = tr.querySelector('.btn-update-order-status');
                             const selectEl = tr.querySelector('.order-status-select');
-                            saveBtn.addEventListener('click', async () => {
-                                const newStatus = selectEl.value;
-                                saveBtn.disabled = true;
-                                saveBtn.textContent = '...';
-                                try {
-                                    const updateRes = await api.request(`/admin/orders/${order.id}/status`, {
-                                        method: 'PATCH',
-                                        body: JSON.stringify({ status: newStatus })
-                                    });
-                                    if (updateRes.success) {
-                                        showToast(`Order status updated to "${newStatus}"!`, 'success');
-                                        await loadStats();
+                            if (saveBtn && selectEl) {
+                                saveBtn.addEventListener('click', async () => {
+                                    const newStatus = selectEl.value;
+                                    saveBtn.disabled = true;
+                                    saveBtn.textContent = '...';
+                                    try {
+                                        const updateRes = await api.request(`/admin/orders/${order.id}/status`, {
+                                            method: 'PATCH',
+                                            body: JSON.stringify({ status: newStatus })
+                                        });
+                                        if (updateRes.success) {
+                                            showToast(`Order status updated to "${newStatus}"!`, 'success');
+                                            await loadStats();
+                                            await loadOrders(document.getElementById('filter-order-status').value);
+                                        }
+                                    } catch (err) {
+                                        showToast(err.message, 'error');
+                                    } finally {
+                                        if (saveBtn) {
+                                            saveBtn.disabled = false;
+                                            saveBtn.textContent = 'Save';
+                                        }
                                     }
-                                } catch (err) {
-                                    showToast(err.message, 'error');
-                                } finally {
-                                    saveBtn.disabled = false;
-                                    saveBtn.textContent = 'Save';
-                                }
-                            });
+                                });
+                            }
 
                             tbody.appendChild(tr);
                         });

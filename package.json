@@ -9,6 +9,9 @@
     "db:init": "node server/database/init.js",
     "test": "node tests/run-tests.js"
   },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "keywords": [
     "ecommerce",
     "express",

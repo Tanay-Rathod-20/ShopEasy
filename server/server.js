@@ -1,18 +1,35 @@
 // server/server.js
 // Server entrypoint
 
-const app = require('./app');
 const config = require('./config');
-const initDatabase = require('./database/init');
 
-// Automatically initialize schema and seeds if not already done
+// 1. Enforce configuration validation before proceeding
 try {
-    initDatabase();
+    config.validate();
 } catch (err) {
-    console.error('[Startup] Database initialization warning:', err.message);
+    console.error(`[Fatal Startup Error] Configuration validation failed: ${err.message}`);
+    process.exit(1);
 }
 
-// Start HTTP Server
+// 2. Initialize database schema and seeds (fail fast if initialization fails)
+let initDatabase;
+try {
+    initDatabase = require('./database/init');
+    initDatabase();
+} catch (err) {
+    console.error(`[Fatal Startup Error] Database initialization failed: ${err.message}`);
+    process.exit(1);
+}
+
+// 3. Load application and start HTTP Server only after validation and database succeed
+let app;
+try {
+    app = require('./app');
+} catch (err) {
+    console.error(`[Fatal Startup Error] Application initialization failed: ${err.message}`);
+    process.exit(1);
+}
+
 const server = app.listen(config.port, () => {
     console.log(`====================================================`);
     console.log(`🛍️  ShopEasy Server is running on:`);
@@ -20,6 +37,11 @@ const server = app.listen(config.port, () => {
     console.log(`📡  Health check: http://localhost:${config.port}/api/health`);
     console.log(`⚙️   Environment: ${config.env}`);
     console.log(`====================================================`);
+});
+
+server.on('error', (err) => {
+    console.error(`[Fatal Startup Error] HTTP Server failed to start: ${err.message}`);
+    process.exit(1);
 });
 
 // Graceful shutdown handling
@@ -30,3 +52,5 @@ process.on('SIGINT', () => {
         process.exit(0);
     });
 });
+
+module.exports = server;

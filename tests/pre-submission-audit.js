@@ -97,13 +97,17 @@ async function runAudit() {
         assert(searchData.products.some(p => p.name.toLowerCase().includes('shirt')),
             'Search partial match (?search=shirt) finds matching items');
 
-        // Image validity check
+        // Product image references check (avoiding external third-party requests)
         let imageErrors = 0;
-        for (const p of prodData.products.slice(0, 5)) {
-            const imgRes = await fetch(p.image_url.startsWith('http') ? p.image_url : `${BASE_URL}${p.image_url}`);
-            if (imgRes.status !== 200) imageErrors++;
+        for (const p of prodData.products) {
+            if (!p.image_url || typeof p.image_url !== 'string') {
+                imageErrors++;
+            } else if (p.image_url.startsWith('/images/')) {
+                const localRes = await fetch(`${BASE_URL}${p.image_url}`, { method: 'HEAD' });
+                if (localRes.status !== 200) imageErrors++;
+            }
         }
-        assert(imageErrors === 0, 'Product images serve cleanly (HTTP 200)');
+        assert(imageErrors === 0, 'Product images configured and local media accessible (HTTP 200)');
 
         // --- 4. CART & STOCK VALIDATION ---
         console.log('\n--- 4. Testing Cart Flow & Stock Limits ---');
@@ -246,7 +250,14 @@ async function runAudit() {
     console.log('\n========================================================');
     console.log(`FINAL PRE-SUBMISSION AUDIT RESULT: ${passed} PASSED, ${failed} FAILED`);
     console.log('========================================================\n');
-    process.exit(failed === 0 ? 0 : 1);
+    if (require.main === module) {
+        process.exit(failed === 0 ? 0 : 1);
+    }
+    return { passed, failed };
 }
 
-runAudit();
+if (require.main === module) {
+    runAudit();
+}
+
+module.exports = runAudit;

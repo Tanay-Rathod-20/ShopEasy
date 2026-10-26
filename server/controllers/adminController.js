@@ -119,8 +119,22 @@ function getAllOrders(req, res, next) {
 }
 
 /**
+ * Allowed status transitions state machine
+ * Placed -> Shipped, Cancelled
+ * Shipped -> Delivered, Cancelled
+ * Delivered -> (Terminal)
+ * Cancelled -> (Terminal)
+ */
+const ALLOWED_STATUS_TRANSITIONS = {
+    'Placed': ['Shipped', 'Cancelled'],
+    'Shipped': ['Delivered', 'Cancelled'],
+    'Delivered': [],
+    'Cancelled': []
+};
+
+/**
  * PATCH /api/admin/orders/:id/status
- * Updates status of any order
+ * Updates status of an order enforcing valid state machine transitions
  */
 function updateOrderStatus(req, res, next) {
     try {
@@ -128,27 +142,87 @@ function updateOrderStatus(req, res, next) {
         const { status } = req.body;
 
         const validStatuses = ['Placed', 'Shipped', 'Delivered', 'Cancelled'];
-        if (!validStatuses.includes(status)) {
+        if (!status || !validStatuses.includes(status)) {
             return res.status(400).json({
                 success: false,
-                message: `Invalid status. Valid values: ${validStatuses.join(', ')}`
+                message: `Invalid status "${status}". Valid values: ${validStatuses.join(', ')}.`
             });
         }
 
-        const result = db.prepare(`
-            UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? OR order_number = ?
-        `).run(status, orderId, orderId);
+        // 1. Verify existence of the target order
+        const existingOrder = db.prepare(`
+            SELECT id, order_number, user_id, status, total_paise
+            FROM orders
+            WHERE id = ? OR order_number = ?
+        `).get(orderId, orderId);
 
-        if (result.changes === 0) {
+        if (!existingOrder) {
             return res.status(404).json({
                 success: false,
                 message: 'Order not found.'
             });
         }
 
+        const currentStatus = existingOrder.status;
+
+        // 2. Prevent redundant update
+        if (currentStatus === status) {
+            return res.status(400).json({
+                success: false,
+                message: `Order is already in "${status}" status.`
+            });
+        }
+
+        // 3. Prevent modification of terminal states
+        if (['Delivered', 'Cancelled'].includes(currentStatus)) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot change status of a ${currentStatus} order. "${currentStatus}" is a terminal state.`
+            });
+        }
+
+        // 4. Validate allowed state transition
+        const allowedNext = ALLOWED_STATUS_TRANSITIONS[currentStatus] || [];
+        if (!allowedNext.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid status transition from "${currentStatus}" to "${status}". Allowed transitions: ${allowedNext.join(', ') || 'none'}.`
+            });
+        }
+
+        // 5. Execute state change (and restore stock if cancelled)
+        if (status === 'Cancelled') {
+            const cancelTransaction = db.transaction(() => {
+                db.prepare(`
+                    UPDATE orders SET status = 'Cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ?
+                `).run(existingOrder.id);
+
+                const orderItems = db.prepare(`
+                    SELECT product_id, quantity FROM order_items WHERE order_id = ?
+                `).all(existingOrder.id);
+
+                const restoreStockStmt = db.prepare(`
+                    UPDATE products SET stock_quantity = stock_quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+                `);
+
+                for (const it of orderItems) {
+                    restoreStockStmt.run(it.quantity, it.product_id);
+                }
+            });
+
+            cancelTransaction();
+        } else {
+            db.prepare(`
+                UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+            `).run(status, existingOrder.id);
+        }
+
+        const updatedOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(existingOrder.id);
+
         return res.status(200).json({
             success: true,
-            message: `Order status updated to "${status}".`
+            message: `Order status transitioned from "${currentStatus}" to "${status}".`,
+            order: updatedOrder
         });
     } catch (err) {
         next(err);

@@ -124,11 +124,24 @@
                             orderCard.className = 'cart-card';
                             orderCard.style.padding = '1.75rem';
 
-                            // Format Payment method badge
+                            // Format Payment method badge and status note
                             let paymentBadge = '💵 Cash on Delivery';
-                            if (order.payment_method === 'UPI') paymentBadge = '📱 UPI Payment';
-                            if (order.payment_method === 'CARD') paymentBadge = '💳 Card Payment';
-                            if (order.payment_method === 'NETBANKING') paymentBadge = '🏦 Net Banking';
+                            let paymentStatusText = '';
+                            if (order.payment_method === 'COD') {
+                                paymentBadge = '💵 Cash on Delivery';
+                                if (order.status === 'Delivered') {
+                                    paymentStatusText = '<span style="color: var(--success); font-weight: 700;">✓ Payment Collected upon Delivery</span>';
+                                } else if (order.status === 'Cancelled') {
+                                    paymentStatusText = '<span style="color: var(--danger); font-weight: 600;">Order Cancelled — No Payment Due</span>';
+                                } else {
+                                    paymentStatusText = '<span style="color: var(--warning); font-weight: 700;">⏳ Payment Due on Delivery (Cash on Delivery)</span>';
+                                }
+                            } else {
+                                if (order.payment_method === 'UPI') paymentBadge = '📱 UPI (Demo)';
+                                else if (order.payment_method === 'CARD') paymentBadge = '💳 Card (Demo)';
+                                else if (order.payment_method === 'NETBANKING') paymentBadge = '🏦 Net Banking (Demo)';
+                                paymentStatusText = '<span style="color: var(--text-secondary); font-size: 0.8rem; background: #f8fafc; border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; display: inline-block;">ℹ️ Demo payment method selected — no real payment processed.</span>';
+                            }
 
                             // Format status class
                             let statusBadgeClass = 'tag-in-stock';
@@ -214,20 +227,6 @@
                                     <div class="tracking-stepper">
                                         ${stepperStepsHtml}
                                     </div>
-
-                                    <!-- Viva Demonstration Status Simulator -->
-                                    <div style="margin-top: 1.5rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
-                                        <span>🎓 <strong>Viva Status Simulator:</strong> Simulate package transitions for demonstration:</span>
-                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                            <select class="form-input sim-status-select" data-id="${order.id}" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;">
-                                                <option value="Placed" ${order.status === 'Placed' ? 'selected' : ''}>Status: Placed</option>
-                                                <option value="Shipped" ${order.status === 'Shipped' ? 'selected' : ''}>Status: Shipped</option>
-                                                <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Status: Delivered</option>
-                                                <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Status: Cancelled</option>
-                                            </select>
-                                            <button type="button" class="btn-secondary btn-apply-sim" data-id="${order.id}" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">Apply</button>
-                                        </div>
-                                    </div>
                                 </div>
 
                                 <!-- Items List -->
@@ -242,10 +241,8 @@
                                         ${escapeHTML(order.shipping_address)}, ${escapeHTML(order.shipping_city)} - ${escapeHTML(order.shipping_pincode)}
                                     </div>
                                     <div style="text-align: right;">
-                                        <div style="font-size: 0.82rem; font-weight: 600; color: ${order.payment_method === 'COD' && order.status !== 'Delivered' ? 'var(--warning)' : 'var(--text-secondary)'};">
-                                            ${order.payment_method === 'COD' 
-                                                ? (order.status === 'Delivered' ? '✓ Cash Collected on Delivery' : '⏳ Payment Due upon Doorstep Delivery')
-                                                : `✓ Paid via ${paymentBadge} (Demo Auth)`}
+                                        <div style="margin-bottom: 0.25rem;">
+                                            ${paymentStatusText}
                                         </div>
                                         <div style="font-size: 1.4rem; font-weight: 800; color: var(--primary);">
                                             ${escapeHTML(order.formatted_total)}
@@ -261,29 +258,6 @@
                                 const isVisible = trackingBox.style.display !== 'none';
                                 trackingBox.style.display = isVisible ? 'none' : 'block';
                                 toggleBtn.textContent = isVisible ? '🚚 Track Package' : '🚚 Hide Tracking';
-                            });
-
-                            // Simulation status update button (for viva demo)
-                            const applySimBtn = orderCard.querySelector('.btn-apply-sim');
-                            const statusSelect = orderCard.querySelector('.sim-status-select');
-                            applySimBtn.addEventListener('click', async () => {
-                                const newStatus = statusSelect.value;
-                                applySimBtn.disabled = true;
-                                applySimBtn.textContent = 'Updating...';
-                                try {
-                                    const updateRes = await api.request(`/orders/${order.id}/status`, {
-                                        method: 'PATCH',
-                                        body: JSON.stringify({ status: newStatus })
-                                    });
-                                    if (updateRes.success) {
-                                        showToast(`Order status updated to "${newStatus}"!`, 'success');
-                                        await loadOrders();
-                                    }
-                                } catch (err) {
-                                    showToast(err.message || 'Status update failed', 'error');
-                                    applySimBtn.disabled = false;
-                                    applySimBtn.textContent = 'Apply';
-                                }
                             });
 
                             ordersList.appendChild(orderCard);
