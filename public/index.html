@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopEasy - Modern E-Commerce Platform</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛍️</text></svg>">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="/" class="brand">
+                <span class="brand-icon">🛍️</span>
+                <span>ShopEasy</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link active">Home</a></li>
+                <li><a href="#catalogue" class="nav-link">Shop</a></li>
+                <li><a href="/login.html" class="nav-link">Login</a></li>
+                <li><a href="/cart.html" class="nav-link">Cart <span class="badge" id="cart-count">0</span></a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="hero-badge">🚀 Stage 2 Live Deployment</div>
+            <h1>Welcome to ShopEasy</h1>
+            <p>A full-stack e-commerce web platform engineered with vanilla JavaScript, Node.js Express, and SQLite.</p>
+        </section>
+
+        <section class="status-grid">
+            <div class="status-card">
+                <div class="status-icon">⚡</div>
+                <h3>Express Backend</h3>
+                <p>Node.js HTTP REST API server with security middleware and centralized error handling.</p>
+                <span class="pill-status pill-success">● Server Online (Port 5000)</span>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon">🗄️</div>
+                <h3>SQLite Database</h3>
+                <p>Normalized schema with integer paise currency, foreign keys, and indexes.</p>
+                <span class="pill-status pill-success" id="db-status">● Connected & Seeded</span>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon">🔐</div>
+                <h3>Authentication</h3>
+                <p>bcrypt password hashing and secure stateless JSON Web Tokens (JWT).</p>
+                <span class="pill-status pill-info">Ready for Stage 3</span>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon">🛒</div>
+                <h3>Shop Catalogue</h3>
+                <p>16 seeded products across 4 categories with real-time stock & cart management.</p>
+                <span class="pill-status pill-info">Connecting in Stage 4</span>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 ShopEasy Inc. Individual Internship Full-Stack Project.</p>
+    </footer>
+
+    <script>
+        // Check health endpoint automatically
+        fetch('/api/health')
+            .then(res => res.json())
+            .then(data => {
+                const dbStatus = document.getElementById('db-status');
+                if (data.success && data.database === 'connected') {
+                    dbStatus.textContent = '● SQLite Active & Healthy';
+                }
+            })
+            .catch(err => {
+                console.error('Health check failed:', err);
+            });
+    </script>
+</body>
+</html>
