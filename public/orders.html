@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShopEasy - My Orders</title>
+    <title>ShopEasy - My Orders & Tracking</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛍️</text></svg>">
 </head>
@@ -32,16 +32,22 @@
     </header>
 
     <main>
-        <!-- Order Confirmation Banner (shown when arriving after checkout) -->
-        <div id="confirmation-banner" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 2rem; text-align: center;">
-            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
-            <h2 style="color: #047857; font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem;">Order Placed Successfully!</h2>
-            <p style="color: #065f46; font-size: 1rem; max-width: 600px; margin: 0 auto;">
-                Thank you for shopping with ShopEasy! Your order <strong id="confirmed-order-number">ORD-XXXX</strong> has been received and will be delivered with <strong>Cash on Delivery</strong>.
+        <!-- Order Confirmation Banner (shown right after placing an order) -->
+        <div id="confirmation-banner" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 2rem; text-align: center;">
+            <div style="font-size: 2.75rem; margin-bottom: 0.5rem;">🎉</div>
+            <h2 style="color: #047857; font-size: 1.6rem; font-weight: 800; margin-bottom: 0.5rem;">Order Placed Successfully!</h2>
+            <p style="color: #065f46; font-size: 1.05rem; max-width: 620px; margin: 0 auto;">
+                Thank you for shopping with ShopEasy! Your order <strong id="confirmed-order-number">ORD-XXXX</strong> is being processed. You can track its live fulfillment status below.
             </p>
         </div>
 
-        <h1 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 1.5rem;">My Orders</h1>
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+                <h1 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.5px;">My Orders & Package Tracking</h1>
+                <p style="color: var(--text-secondary); font-size: 0.95rem;">Review past purchases and monitor real-time shipping milestones.</p>
+            </div>
+            <a href="/#catalogue" class="btn-secondary" style="font-size: 0.9rem;">+ Continue Shopping</a>
+        </div>
 
         <!-- Not Authenticated -->
         <div id="orders-unauth" class="state-box" style="display: none;">
@@ -55,20 +61,20 @@
         <div id="orders-loading" class="state-box">
             <div class="spinner"></div>
             <h3 class="state-title">Loading Your Orders...</h3>
-            <p class="state-desc">Fetching your purchase history.</p>
+            <p class="state-desc">Retrieving your purchase history and live carrier tracking data.</p>
         </div>
 
         <!-- Empty State -->
         <div id="orders-empty" class="state-box" style="display: none;">
             <div class="state-icon">📦</div>
             <h2 class="state-title">No Orders Yet</h2>
-            <p class="state-desc">You haven't placed any orders with ShopEasy yet. Start exploring our catalogue!</p>
-            <a href="/#catalogue" class="btn-hero" style="font-size: 0.95rem; padding: 0.7rem 1.75rem;">Browse Products</a>
+            <p class="state-desc">You haven't placed any orders with ShopEasy yet. Start exploring our latest products!</p>
+            <a href="/#catalogue" class="btn-hero" style="font-size: 0.95rem; padding: 0.7rem 1.75rem;">Browse Catalogue</a>
         </div>
 
-        <!-- Orders List -->
-        <div id="orders-list" style="display: none; display: flex; flex-direction: column; gap: 1.5rem;">
-            <!-- Dynamic Order Cards -->
+        <!-- Orders List Container -->
+        <div id="orders-list" style="display: none; display: flex; flex-direction: column; gap: 1.75rem;">
+            <!-- Dynamic Order Cards with Live Tracking Steppers -->
         </div>
     </main>
 
@@ -104,73 +110,193 @@
                 return;
             }
 
-            try {
-                const res = await api.getOrders();
-                loadingBox.style.display = 'none';
+            // Function to render order cards with live tracking steppers
+            async function loadOrders() {
+                try {
+                    const res = await api.getOrders();
+                    loadingBox.style.display = 'none';
 
-                if (res.success && res.orders && res.orders.length > 0) {
-                    ordersList.innerHTML = '';
+                    if (res.success && res.orders && res.orders.length > 0) {
+                        ordersList.innerHTML = '';
 
-                    res.orders.forEach(order => {
-                        const orderCard = document.createElement('div');
-                        orderCard.className = 'cart-card';
-                        orderCard.style.marginBottom = '1.25rem';
+                        res.orders.forEach((order, index) => {
+                            const orderCard = document.createElement('div');
+                            orderCard.className = 'cart-card';
+                            orderCard.style.padding = '1.75rem';
 
-                        // Status Color
-                        let statusPillClass = 'tag-in-stock';
-                        if (order.status === 'Cancelled') statusPillClass = 'tag-out-of-stock';
+                            // Format Payment method badge
+                            let paymentBadge = '💵 Cash on Delivery';
+                            if (order.payment_method === 'UPI') paymentBadge = '📱 UPI Payment';
+                            if (order.payment_method === 'CARD') paymentBadge = '💳 Card Payment';
+                            if (order.payment_method === 'NETBANKING') paymentBadge = '🏦 Net Banking';
 
-                        // Format order items table
-                        let itemsHtml = order.items.map(it => `
-                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px dashed var(--border);">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <img src="${it.image_url || 'https://placehold.co/50'}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px;">
+                            // Format status class
+                            let statusBadgeClass = 'tag-in-stock';
+                            if (order.status === 'Cancelled') statusBadgeClass = 'tag-out-of-stock';
+
+                            // Build Order Items HTML
+                            const itemsHtml = order.items.map(it => `
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0; border-bottom: 1px dashed var(--border);">
+                                    <div style="display: flex; align-items: center; gap: 0.85rem;">
+                                        <img src="${it.image_url || 'https://placehold.co/50'}" style="width: 46px; height: 46px; object-fit: cover; border-radius: 6px;" onerror="this.src='https://placehold.co/50';">
+                                        <div>
+                                            <a href="/product.html?id=${it.product_id}" style="font-weight: 700; color: var(--text-primary); text-decoration: none;">${escapeHTML(it.product_name)}</a>
+                                            <div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHTML(it.formatted_unit_price)} × ${it.quantity}</div>
+                                        </div>
+                                    </div>
+                                    <strong style="font-size: 0.95rem;">${escapeHTML(it.formatted_subtotal)}</strong>
+                                </div>
+                            `).join('');
+
+                            // Build Tracking Stepper HTML
+                            const trk = order.tracking || {};
+                            const steps = trk.steps || [];
+
+                            const stepperStepsHtml = steps.map((s, sIdx) => {
+                                let stepClass = '';
+                                let checkIcon = sIdx + 1;
+                                if (s.completed) {
+                                    stepClass = 'completed';
+                                    checkIcon = '✓';
+                                } else if (s.active) {
+                                    stepClass = 'active';
+                                }
+
+                                return `
+                                    <div class="step-item ${stepClass}">
+                                        <div class="step-circle">${checkIcon}</div>
+                                        <div class="step-title">${escapeHTML(s.title)}</div>
+                                        <div class="step-desc">${escapeHTML(s.desc)}</div>
+                                        <div class="step-time">${escapeHTML(s.timestamp)}</div>
+                                    </div>
+                                `;
+                            }).join('');
+
+                            // Automatically expand tracking for the first order or the just-confirmed order
+                            const shouldAutoExpand = (confirmedOrderNumber && order.order_number === confirmedOrderNumber) || index === 0;
+
+                            orderCard.innerHTML = `
+                                <!-- Top Bar: Order ID, Date, Status, Payment -->
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
                                     <div>
-                                        <div style="font-weight: 600;">${escapeHTML(it.product_name)}</div>
-                                        <div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHTML(it.formatted_unit_price)} × ${it.quantity}</div>
+                                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                            <strong style="font-size: 1.2rem; color: var(--primary);">${escapeHTML(order.order_number)}</strong>
+                                            <span style="font-size: 0.78rem; font-weight: 700; background: #f1f5f9; color: var(--text-secondary); padding: 3px 8px; border-radius: 4px;">${paymentBadge}</span>
+                                        </div>
+                                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem;">
+                                            Placed on ${new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <span class="stock-tag ${statusBadgeClass}" style="position: static; font-size: 0.85rem; padding: 4px 12px;">
+                                            ● ${escapeHTML(order.status)}
+                                        </span>
+                                        <button type="button" class="btn-track btn-toggle-tracking" data-target="track-${order.id}">
+                                            🚚 ${shouldAutoExpand ? 'Hide Tracking' : 'Track Package'}
+                                        </button>
                                     </div>
                                 </div>
-                                <strong>${escapeHTML(it.formatted_subtotal)}</strong>
-                            </div>
-                        `).join('');
 
-                        orderCard.innerHTML = `
-                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); margin-bottom: 0.75rem;">
-                                <div>
-                                    <strong style="font-size: 1.1rem; color: var(--primary);">${escapeHTML(order.order_number)}</strong>
-                                    <span style="font-size: 0.85rem; color: var(--text-muted); margin-left: 0.75rem;">Placed on ${new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                <!-- Live Tracking Feature Box -->
+                                <div id="track-${order.id}" class="tracking-box" style="display: ${shouldAutoExpand ? 'block' : 'none'};">
+                                    <div class="tracking-header">
+                                        <div>
+                                            <span style="font-size: 0.85rem; color: var(--text-secondary);">Carrier: <strong>${escapeHTML(trk.courier || 'ShopEasy Express')}</strong></span>
+                                            <span class="tracking-id-badge" style="margin-left: 0.5rem;">Waybill: ${escapeHTML(trk.tracking_number || '')}</span>
+                                        </div>
+                                        <div style="font-size: 0.85rem;">
+                                            Estimated Delivery: <strong style="color: var(--success);">${escapeHTML(trk.estimated_delivery || '3-4 Business Days')}</strong>
+                                        </div>
+                                    </div>
+
+                                    <!-- Visual Stepper Progress Bar -->
+                                    <div class="tracking-stepper">
+                                        ${stepperStepsHtml}
+                                    </div>
+
+                                    <!-- Viva Demonstration Status Simulator -->
+                                    <div style="margin-top: 1.5rem; padding-top: 0.75rem; border-top: 1px dashed var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+                                        <span>🎓 <strong>Viva Demo:</strong> Test tracking milestone transitions:</span>
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <select class="form-input sim-status-select" data-id="${order.id}" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;">
+                                                <option value="Placed" ${order.status === 'Placed' ? 'selected' : ''}>Status: Placed</option>
+                                                <option value="Shipped" ${order.status === 'Shipped' ? 'selected' : ''}>Status: Shipped</option>
+                                                <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Status: Delivered</option>
+                                                <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Status: Cancelled</option>
+                                            </select>
+                                            <button type="button" class="btn-secondary btn-apply-sim" data-id="${order.id}" style="padding: 0.25rem 0.6rem; font-size: 0.8rem;">Apply</button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <span class="stock-tag ${statusPillClass}" style="position: static;">
-                                    ● ${escapeHTML(order.status)}
-                                </span>
-                            </div>
 
-                            <div style="margin-bottom: 1rem;">
-                                ${itemsHtml}
-                            </div>
-
-                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding-top: 0.5rem; font-size: 0.9rem;">
-                                <div style="color: var(--text-secondary);">
-                                    📍 <strong>Delivery to:</strong> ${escapeHTML(order.customer_name)}, ${escapeHTML(order.shipping_address)}, ${escapeHTML(order.shipping_city)} - ${escapeHTML(order.shipping_pincode)}
+                                <!-- Items List -->
+                                <div style="margin: 1.25rem 0;">
+                                    ${itemsHtml}
                                 </div>
-                                <div style="font-size: 1.15rem; font-weight: 800;">
-                                    Total: <span style="color: var(--primary);">${escapeHTML(order.formatted_total)}</span>
-                                    <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); display: block; text-align: right;">(Cash on Delivery)</span>
+
+                                <!-- Delivery Details & Grand Total -->
+                                <div style="display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
+                                    <div style="font-size: 0.88rem; color: var(--text-secondary); max-width: 500px;">
+                                        📍 <strong>Ship to:</strong> ${escapeHTML(order.customer_name)} (${escapeHTML(order.customer_phone)})<br>
+                                        ${escapeHTML(order.shipping_address)}, ${escapeHTML(order.shipping_city)} - ${escapeHTML(order.shipping_pincode)}
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 0.82rem; color: var(--text-muted);">Paid via ${paymentBadge}</div>
+                                        <div style="font-size: 1.4rem; font-weight: 800; color: var(--primary);">
+                                            ${escapeHTML(order.formatted_total)}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        `;
+                            `;
 
-                        ordersList.appendChild(orderCard);
-                    });
+                            // Toggle tracking expand/collapse
+                            const toggleBtn = orderCard.querySelector('.btn-toggle-tracking');
+                            const trackingBox = orderCard.querySelector(`#track-${order.id}`);
+                            toggleBtn.addEventListener('click', () => {
+                                const isVisible = trackingBox.style.display !== 'none';
+                                trackingBox.style.display = isVisible ? 'none' : 'block';
+                                toggleBtn.textContent = isVisible ? '🚚 Track Package' : '🚚 Hide Tracking';
+                            });
 
-                    ordersList.style.display = 'block';
-                } else {
-                    emptyBox.style.display = 'block';
+                            // Simulation status update button (for viva demo)
+                            const applySimBtn = orderCard.querySelector('.btn-apply-sim');
+                            const statusSelect = orderCard.querySelector('.sim-status-select');
+                            applySimBtn.addEventListener('click', async () => {
+                                const newStatus = statusSelect.value;
+                                applySimBtn.disabled = true;
+                                applySimBtn.textContent = 'Updating...';
+                                try {
+                                    const updateRes = await api.request(`/orders/${order.id}/status`, {
+                                        method: 'PATCH',
+                                        body: JSON.stringify({ status: newStatus })
+                                    });
+                                    if (updateRes.success) {
+                                        showToast(`Order status updated to "${newStatus}"!`, 'success');
+                                        await loadOrders();
+                                    }
+                                } catch (err) {
+                                    showToast(err.message || 'Status update failed', 'error');
+                                    applySimBtn.disabled = false;
+                                    applySimBtn.textContent = 'Apply';
+                                }
+                            });
+
+                            ordersList.appendChild(orderCard);
+                        });
+
+                        ordersList.style.display = 'flex';
+                    } else {
+                        emptyBox.style.display = 'block';
+                    }
+                } catch (err) {
+                    loadingBox.style.display = 'none';
+                    showToast(err.message || 'Failed to load orders.', 'error');
                 }
-            } catch (err) {
-                loadingBox.style.display = 'none';
-                showToast(err.message || 'Failed to load orders.', 'error');
             }
+
+            // Initial load
+            loadOrders();
         });
     </script>
 </body>

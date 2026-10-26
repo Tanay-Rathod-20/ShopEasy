@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShopEasy - Checkout</title>
+    <title>ShopEasy - Checkout & Payment</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛍️</text></svg>">
 </head>
@@ -48,52 +48,140 @@
         </div>
 
         <div id="checkout-layout" class="cart-layout" style="display: none;">
-            <!-- Shipping Information Form -->
+            <!-- Shipping & Payment Form -->
             <div class="cart-card">
-                <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem;">1. Delivery Details</h2>
+                <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.25rem;">1. Delivery Details</h2>
                 
                 <div id="checkout-alert" class="form-alert"></div>
 
                 <form id="form-checkout">
                     <div class="form-group">
                         <label for="cust-name" class="form-label">Full Name</label>
-                        <input type="text" id="cust-name" class="form-input" required placeholder="John Doe">
+                        <input type="text" id="cust-name" class="form-input" required placeholder="Jane Doe" value="Jane Doe">
                     </div>
 
                     <div class="form-group">
                         <label for="cust-phone" class="form-label">Phone Number (10 digits)</label>
-                        <input type="tel" id="cust-phone" class="form-input" required placeholder="9876543210">
+                        <input type="tel" id="cust-phone" class="form-input" required placeholder="9876543210" value="9876543210">
                     </div>
 
                     <div class="form-group">
                         <label for="cust-address" class="form-label">Complete Street Address</label>
-                        <textarea id="cust-address" class="form-input" rows="3" required placeholder="Flat/House No., Building, Street Area"></textarea>
+                        <textarea id="cust-address" class="form-input" rows="3" required placeholder="Flat/House No., Building, Street Area">Flat 402, Sea Green Heights, Marine Drive</textarea>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="form-group">
                             <label for="cust-city" class="form-label">City</label>
-                            <input type="text" id="cust-city" class="form-input" required placeholder="Mumbai">
+                            <input type="text" id="cust-city" class="form-input" required placeholder="Mumbai" value="Mumbai">
                         </div>
                         <div class="form-group">
                             <label for="cust-pincode" class="form-label">PIN Code</label>
-                            <input type="text" id="cust-pincode" class="form-input" required placeholder="400001">
+                            <input type="text" id="cust-pincode" class="form-input" required placeholder="400001" value="400001">
                         </div>
                     </div>
 
-                    <h2 style="font-size: 1.25rem; font-weight: 700; margin: 1.5rem 0 1rem 0;">2. Payment Method</h2>
-                    <div style="background: #f8fafc; border: 2px solid var(--primary); border-radius: var(--radius-md); padding: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <span style="font-size: 1.5rem;">💵</span>
-                            <div>
-                                <div style="font-weight: 700;">Cash on Delivery (COD)</div>
-                                <div style="font-size: 0.85rem; color: var(--text-secondary);">Pay in cash when your package is delivered to your address.</div>
+                    <!-- 2. PAYMENT METHODS SECTION -->
+                    <h2 style="font-size: 1.25rem; font-weight: 700; margin: 2rem 0 1rem 0;">2. Select Payment Method</h2>
+                    
+                    <div class="payment-methods-grid">
+                        <!-- COD Option -->
+                        <label class="payment-card active" id="card-method-cod">
+                            <input type="radio" name="payment_method" value="COD" class="payment-radio" checked>
+                            <div class="payment-icon">💵</div>
+                            <div class="payment-info">
+                                <h4>Cash on Delivery</h4>
+                                <p>Pay in cash upon doorstep package handover</p>
+                            </div>
+                        </label>
+
+                        <!-- UPI Option -->
+                        <label class="payment-card" id="card-method-upi">
+                            <input type="radio" name="payment_method" value="UPI" class="payment-radio">
+                            <div class="payment-icon">📱</div>
+                            <div class="payment-info">
+                                <h4>Instant UPI</h4>
+                                <p>GPay, PhonePe, Paytm, or BHIM UPI ID</p>
+                            </div>
+                        </label>
+
+                        <!-- Card Option -->
+                        <label class="payment-card" id="card-method-card">
+                            <input type="radio" name="payment_method" value="CARD" class="payment-radio">
+                            <div class="payment-icon">💳</div>
+                            <div class="payment-info">
+                                <h4>Credit / Debit Card</h4>
+                                <p>Visa, MasterCard, RuPay, Maestro</p>
+                            </div>
+                        </label>
+
+                        <!-- Net Banking Option -->
+                        <label class="payment-card" id="card-method-netbanking">
+                            <input type="radio" name="payment_method" value="NETBANKING" class="payment-radio">
+                            <div class="payment-icon">🏦</div>
+                            <div class="payment-info">
+                                <h4>Net Banking</h4>
+                                <p>All major Indian banks supported</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Interactive Sub-Drawers for simulated electronic payments -->
+                    <!-- UPI Drawer -->
+                    <div id="drawer-upi" class="payment-drawer" style="display: none;">
+                        <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--text-primary);">Pay via UPI QR or VPA ID</h4>
+                        <div class="qr-mock-box">
+                            <div style="text-align: center;">
+                                <img src="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22white%22/><rect x=%2210%22 y=%2210%22 width=%2230%22 height=%2230%22 fill=%22black%22/><rect x=%2260%22 y=%2210%22 width=%2230%22 height=%2230%22 fill=%22black%22/><rect x=%2210%22 y=%2260%22 width=%2230%22 height=%2230%22 fill=%22black%22/><rect x=%2245%22 y=%2245%22 width=%2215%22 height=%2215%22 fill=%22black%22/><rect x=%2220%22 y=%2220%22 width=%2210%22 height=%2210%22 fill=%22white%22/><rect x=%2270%22 y=%2220%22 width=%2210%22 height=%2210%22 fill=%22white%22/><rect x=%2220%22 y=%2270%22 width=%2210%22 height=%2210%22 fill=%22white%22/></svg>" class="qr-code-img" alt="UPI QR">
+                                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">Scan with Any App</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <label for="upi-id" class="form-label">Or enter UPI ID / VPA</label>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <input type="text" id="upi-id" class="form-input" placeholder="mobile@upi / name@okhdfcbank" value="customer@shopeasy">
+                                    <button type="button" class="btn-secondary" id="btn-verify-upi" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Verify</button>
+                                </div>
+                                <span id="upi-status" style="font-size: 0.78rem; color: var(--success); font-weight: 600; margin-top: 4px; display: block;">✓ Verified UPI ID (Demo Sandbox)</span>
                             </div>
                         </div>
-                        <span class="stock-tag tag-in-stock" style="position: static;">Available</span>
                     </div>
 
-                    <button type="submit" class="btn-checkout" id="btn-submit-order" style="margin-top: 2rem;">
+                    <!-- Card Drawer -->
+                    <div id="drawer-card" class="payment-drawer" style="display: none;">
+                        <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--text-primary);">Enter Card Details (Sandbox Simulation)</h4>
+                        <div class="form-group">
+                            <label class="form-label">Card Number</label>
+                            <input type="text" id="card-number" class="form-input" placeholder="4111 2222 3333 4444" maxlength="19" value="4532 •••• •••• 8892">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label">Expiry (MM/YY)</label>
+                                <input type="text" id="card-expiry" class="form-input" placeholder="12/28" maxlength="5" value="08/29">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">CVV</label>
+                                <input type="password" id="card-cvv" class="form-input" placeholder="123" maxlength="3" value="789">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Net Banking Drawer -->
+                    <div id="drawer-netbanking" class="payment-drawer" style="display: none;">
+                        <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--text-primary);">Choose Your Bank</h4>
+                        <select id="bank-select" class="form-input">
+                            <option value="HDFC">HDFC Bank</option>
+                            <option value="SBI" selected>State Bank of India (SBI)</option>
+                            <option value="ICICI">ICICI Bank</option>
+                            <option value="AXIS">Axis Bank</option>
+                            <option value="KOTAK">Kotak Mahindra Bank</option>
+                            <option value="PNB">Punjab National Bank</option>
+                        </select>
+                        <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.5rem;">
+                            You will be safely routed through the simulated bank gateway authorization upon submitting.
+                        </p>
+                    </div>
+
+                    <button type="submit" class="btn-checkout" id="btn-submit-order" style="margin-top: 1.5rem;">
                         Place Order (Cash on Delivery)
                     </button>
                 </form>
@@ -117,6 +205,10 @@
                 <div class="summary-row summary-total">
                     <span>Total Amount</span>
                     <span id="chk-grand-total">₹0.00</span>
+                </div>
+
+                <div style="background: #f1f5f9; padding: 0.75rem; border-radius: var(--radius-sm); margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary);">
+                    📦 <strong>Free Express Shipping:</strong> Orders are dispatched within 24 hours with real-time tracking.
                 </div>
             </div>
         </div>
@@ -153,6 +245,63 @@
                 document.getElementById('cust-name').value = user.name;
             }
 
+            // Payment method card toggles & drawers
+            let selectedPaymentMethod = 'COD';
+            const methodRadios = document.querySelectorAll('input[name="payment_method"]');
+            const methodCards = document.querySelectorAll('.payment-card');
+            const drawerUpi = document.getElementById('drawer-upi');
+            const drawerCard = document.getElementById('drawer-card');
+            const drawerNetbanking = document.getElementById('drawer-netbanking');
+
+            function updatePaymentUI(method) {
+                selectedPaymentMethod = method;
+
+                methodCards.forEach(card => card.classList.remove('active'));
+                const activeCard = document.getElementById(`card-method-${method.toLowerCase()}`);
+                if (activeCard) activeCard.classList.add('active');
+
+                // Drawers
+                drawerUpi.style.display = method === 'UPI' ? 'block' : 'none';
+                drawerCard.style.display = method === 'CARD' ? 'block' : 'none';
+                drawerNetbanking.style.display = method === 'NETBANKING' ? 'block' : 'none';
+
+                // Update CTA button label
+                if (method === 'COD') submitBtn.textContent = 'Place Order (Cash on Delivery)';
+                else if (method === 'UPI') submitBtn.textContent = 'Pay via UPI & Place Order';
+                else if (method === 'CARD') submitBtn.textContent = 'Pay via Card & Place Order';
+                else if (method === 'NETBANKING') submitBtn.textContent = 'Proceed with Net Banking & Place Order';
+            }
+
+            methodRadios.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    updatePaymentUI(e.target.value);
+                });
+            });
+
+            methodCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const radio = card.querySelector('input[type="radio"]');
+                    if (radio) {
+                        radio.checked = true;
+                        updatePaymentUI(radio.value);
+                    }
+                });
+            });
+
+            // Verify UPI button mock feedback
+            document.getElementById('btn-verify-upi').addEventListener('click', () => {
+                const upiVal = document.getElementById('upi-id').value.trim();
+                const statusSpan = document.getElementById('upi-status');
+                if (upiVal.includes('@')) {
+                    statusSpan.textContent = `✓ Verified (${upiVal})`;
+                    statusSpan.style.color = 'var(--success)';
+                    showToast('UPI ID verified successfully!', 'success');
+                } else {
+                    statusSpan.textContent = '✕ Please enter a valid UPI ID (e.g. name@upi)';
+                    statusSpan.style.color = 'var(--danger)';
+                }
+            });
+
             // Load Cart Items for confirmation
             try {
                 const res = await api.getCart();
@@ -174,7 +323,7 @@
 
                     row.innerHTML = `
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <img src="${it.image_url}" style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px;">
+                            <img src="${it.image_url}" style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px;" onerror="this.src='https://placehold.co/50';">
                             <div>
                                 <div style="font-weight: 600; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(it.name)}</div>
                                 <div style="color: var(--text-muted); font-size: 0.8rem;">Qty: ${it.quantity}</div>
@@ -203,11 +352,12 @@
                     customerPhone: document.getElementById('cust-phone').value.trim(),
                     shippingAddress: document.getElementById('cust-address').value.trim(),
                     shippingCity: document.getElementById('cust-city').value.trim(),
-                    shippingPincode: document.getElementById('cust-pincode').value.trim()
+                    shippingPincode: document.getElementById('cust-pincode').value.trim(),
+                    paymentMethod: selectedPaymentMethod
                 };
 
                 submitBtn.disabled = true;
-                submitBtn.textContent = 'Processing Order...';
+                submitBtn.textContent = 'Authorizing & Placing Order...';
 
                 try {
                     const res = await api.createOrder(orderData);
@@ -220,7 +370,7 @@
                     checkoutAlert.className = 'form-alert form-alert-error';
                     checkoutAlert.style.display = 'block';
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Place Order (Cash on Delivery)';
+                    updatePaymentUI(selectedPaymentMethod);
                 }
             });
         });

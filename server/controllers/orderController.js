@@ -1,8 +1,87 @@
 // server/controllers/orderController.js
-// Handles checkout, order creation with database transactions, and order history
+// Handles checkout, order creation with database transactions, tracking, and order history
 
 const db = require('../database/db');
 const { formatINR, toRupees } = require('../utils/currency');
+
+/**
+ * Builds realistic tracking milestone steps based on order status and creation date
+ */
+function buildTrackingInfo(order) {
+    const orderDate = new Date(order.created_at);
+    
+    // Calculate expected delivery date (3 days after order date)
+    const expectedDelivery = new Date(orderDate);
+    expectedDelivery.setDate(expectedDelivery.getDate() + 3);
+
+    const formattedExpected = expectedDelivery.toLocaleDateString('en-IN', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+
+    const trackingNumber = `SE-TRK-${(order.id * 18471 + 100000).toString()}`;
+    const courierPartner = 'ShopEasy Express Logistics';
+
+    // Status mapping to numeric milestone
+    // 1: Placed, 2: Shipped, 3: Delivered, -1: Cancelled
+    const status = order.status;
+
+    const steps = [
+        {
+            key: 'placed',
+            title: 'Order Confirmed',
+            desc: 'Your order was successfully placed and verified.',
+            timestamp: orderDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+            completed: ['Placed', 'Shipped', 'Delivered'].includes(status),
+            active: status === 'Placed'
+        },
+        {
+            key: 'processing',
+            title: 'Packed & Processed',
+            desc: 'Items inspected and packed at ShopEasy Fulfillment Hub.',
+            timestamp: ['Shipped', 'Delivered'].includes(status) ? 'Completed' : 'Estimated in 24 hrs',
+            completed: ['Shipped', 'Delivered'].includes(status),
+            active: status === 'Placed'
+        },
+        {
+            key: 'shipped',
+            title: 'Shipped (In Transit)',
+            desc: `Handed over to ${courierPartner}. Waybill #${trackingNumber}`,
+            timestamp: ['Shipped', 'Delivered'].includes(status) ? 'In Transit' : 'Pending dispatch',
+            completed: ['Shipped', 'Delivered'].includes(status),
+            active: status === 'Shipped'
+        },
+        {
+            key: 'delivered',
+            title: 'Delivered',
+            desc: status === 'Delivered' ? 'Package safely delivered to your address.' : `Expected delivery by ${formattedExpected}`,
+            timestamp: status === 'Delivered' ? 'Delivered' : formattedExpected,
+            completed: status === 'Delivered',
+            active: status === 'Delivered'
+        }
+    ];
+
+    if (status === 'Cancelled') {
+        steps.push({
+            key: 'cancelled',
+            title: 'Order Cancelled',
+            desc: 'This order was cancelled.',
+            timestamp: 'Cancelled',
+            completed: true,
+            active: true
+        });
+    }
+
+    return {
+        tracking_number: trackingNumber,
+        courier: courierPartner,
+        estimated_delivery: formattedExpected,
+        current_status: status,
+        steps
+    };
+}
 
 /**
  * POST /api/orders
@@ -11,7 +90,14 @@ const { formatINR, toRupees } = require('../utils/currency');
 function createOrder(req, res, next) {
     try {
         const userId = req.user.id;
-        const { customerName, customerPhone, shippingAddress, shippingCity, shippingPincode } = req.body;
+        const {
+            customerName,
+            customerPhone,
+            shippingAddress,
+            shippingCity,
+            shippingPincode,
+            paymentMethod: reqPaymentMethod = 'COD'
+        } = req.body;
 
         // 1. Validate delivery information
         if (!customerName || !customerPhone || !shippingAddress || !shippingCity || !shippingPincode) {
@@ -37,7 +123,13 @@ function createOrder(req, res, next) {
             });
         }
 
-        // 2. Fetch current cart items with fresh product data
+        // 2. Validate Payment Method
+        const validMethods = ['COD', 'UPI', 'CARD', 'NETBANKING'];
+        const paymentMethod = validMethods.includes(reqPaymentMethod.toUpperCase())
+            ? reqPaymentMethod.toUpperCase()
+            : 'COD';
+
+        // 3. Fetch current cart items with fresh product data
         const cartItems = db.prepare(`
             SELECT c.id as cart_item_id, c.quantity,
                    p.id as product_id, p.name as product_name, p.price_paise, p.stock_quantity, p.is_active
@@ -53,7 +145,7 @@ function createOrder(req, res, next) {
             });
         }
 
-        // 3. Verify stock for all items
+        // 4. Verify stock for all items
         for (const item of cartItems) {
             if (item.is_active !== 1) {
                 return res.status(400).json({
@@ -69,31 +161,31 @@ function createOrder(req, res, next) {
             }
         }
 
-        // 4. Calculate grand total safely on server
+        // 5. Calculate grand total safely on server
         let calculatedTotalPaise = 0;
         for (const item of cartItems) {
             calculatedTotalPaise += item.price_paise * item.quantity;
         }
 
-        // 5. Generate unique human-readable order number (e.g. ORD-20261026-ABCD)
+        // 6. Generate unique human-readable order number (e.g. ORD-20261026-ABCD)
         const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
         const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
         const orderNumber = `ORD-${datePart}-${randomPart}`;
 
-        // 6. Execute atomic SQLite transaction
-        // Ensures order creation, order items insertion, inventory reduction, and cart cleanup all succeed or all fail together.
+        // 7. Execute atomic SQLite transaction
         const placeOrderTransaction = db.transaction(() => {
             // A. Insert Order Record
             const insertOrder = db.prepare(`
                 INSERT INTO orders (
                     order_number, user_id, total_paise, status, payment_method,
                     customer_name, customer_phone, shipping_address, shipping_city, shipping_pincode
-                ) VALUES (?, ?, ?, 'Placed', 'COD', ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, 'Placed', ?, ?, ?, ?, ?, ?)
             `);
             const orderResult = insertOrder.run(
                 orderNumber,
                 userId,
                 calculatedTotalPaise,
+                paymentMethod,
                 customerName.trim(),
                 customerPhone.trim(),
                 shippingAddress.trim(),
@@ -125,15 +217,26 @@ function createOrder(req, res, next) {
             return {
                 orderId,
                 orderNumber,
-                totalPaise: calculatedTotalPaise
+                totalPaise: calculatedTotalPaise,
+                createdAt: new Date().toISOString()
             };
         });
 
         const newOrder = placeOrderTransaction();
+        const tracking = buildTrackingInfo({
+            id: newOrder.orderId,
+            status: 'Placed',
+            created_at: newOrder.createdAt
+        });
+
+        let paymentLabel = 'Cash on Delivery';
+        if (paymentMethod === 'UPI') paymentLabel = 'Instant UPI';
+        if (paymentMethod === 'CARD') paymentLabel = 'Credit/Debit Card';
+        if (paymentMethod === 'NETBANKING') paymentLabel = 'Net Banking';
 
         return res.status(201).json({
             success: true,
-            message: 'Order placed successfully with Cash on Delivery!',
+            message: `Order placed successfully using ${paymentLabel}!`,
             order: {
                 id: newOrder.orderId,
                 order_number: newOrder.orderNumber,
@@ -141,7 +244,8 @@ function createOrder(req, res, next) {
                 total_rupees: toRupees(newOrder.totalPaise),
                 formatted_total: formatINR(newOrder.totalPaise),
                 status: 'Placed',
-                payment_method: 'COD'
+                payment_method: paymentMethod,
+                tracking
             }
         });
     } catch (err) {
@@ -151,7 +255,7 @@ function createOrder(req, res, next) {
 
 /**
  * GET /api/orders
- * Returns order history for the authenticated user
+ * Returns order history for the authenticated user with tracking details
  */
 function getCustomerOrders(req, res, next) {
     try {
@@ -179,6 +283,7 @@ function getCustomerOrders(req, res, next) {
                 ...order,
                 total_rupees: toRupees(order.total_paise),
                 formatted_total: formatINR(order.total_paise),
+                tracking: buildTrackingInfo(order),
                 items: items.map(it => ({
                     ...it,
                     unit_price_rupees: toRupees(it.unit_price_paise),
@@ -200,7 +305,7 @@ function getCustomerOrders(req, res, next) {
 
 /**
  * GET /api/orders/:id
- * Returns a specific order details (with ownership verification)
+ * Returns a specific order details with full tracking
  */
 function getOrderById(req, res, next) {
     try {
@@ -244,6 +349,7 @@ function getOrderById(req, res, next) {
                 ...order,
                 total_rupees: toRupees(order.total_paise),
                 formatted_total: formatINR(order.total_paise),
+                tracking: buildTrackingInfo(order),
                 items: items.map(it => ({
                     ...it,
                     unit_price_rupees: toRupees(it.unit_price_paise),
@@ -258,8 +364,52 @@ function getOrderById(req, res, next) {
     }
 }
 
+/**
+ * PATCH /api/orders/:id/status
+ * Updates order status ('Placed', 'Shipped', 'Delivered', 'Cancelled')
+ */
+function updateOrderStatus(req, res, next) {
+    try {
+        const orderId = req.params.id;
+        const { status } = req.body;
+
+        const validStatuses = ['Placed', 'Shipped', 'Delivered', 'Cancelled'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid status. Valid values: ${validStatuses.join(', ')}`
+            });
+        }
+
+        const result = db.prepare(`
+            UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? OR order_number = ?
+        `).run(status, orderId, orderId);
+
+        if (result.changes === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found.'
+            });
+        }
+
+        const updatedOrder = db.prepare('SELECT * FROM orders WHERE id = ? OR order_number = ?').get(orderId, orderId);
+
+        return res.status(200).json({
+            success: true,
+            message: `Order status updated to "${status}".`,
+            order: {
+                ...updatedOrder,
+                tracking: buildTrackingInfo(updatedOrder)
+            }
+        });
+    } catch (err) {
+        next(err);
+    }
+}
+
 module.exports = {
     createOrder,
     getCustomerOrders,
-    getOrderById
+    getOrderById,
+    updateOrderStatus
 };

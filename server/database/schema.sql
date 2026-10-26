@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS orders (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     total_paise INTEGER NOT NULL CHECK(total_paise >= 0),
     status TEXT NOT NULL DEFAULT 'Placed' CHECK(status IN ('Placed', 'Shipped', 'Delivered', 'Cancelled')),
-    payment_method TEXT NOT NULL DEFAULT 'COD' CHECK(payment_method = 'COD'),
+    payment_method TEXT NOT NULL DEFAULT 'COD' CHECK(payment_method IN ('COD', 'UPI', 'CARD', 'NETBANKING')),
     customer_name TEXT NOT NULL,
     customer_phone TEXT NOT NULL,
     shipping_address TEXT NOT NULL,

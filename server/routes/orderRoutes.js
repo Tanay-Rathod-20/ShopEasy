@@ -9,5 +9,6 @@ router.use(authenticateToken);
 router.post('/', orderController.createOrder);
 router.get('/', orderController.getCustomerOrders);
 router.get('/:id', orderController.getOrderById);
+router.patch('/:id/status', orderController.updateOrderStatus);
 
 module.exports = router;
