@@ -1,0 +1,33 @@
+{
+  "name": "shopeasy",
+  "version": "1.0.0",
+  "description": "Full-stack e-commerce web application with Node.js, Express, SQLite, and vanilla HTML/CSS/JS",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js",
+    "db:init": "node server/database/init.js",
+    "test": "node tests/run-tests.js"
+  },
+  "keywords": [
+    "ecommerce",
+    "express",
+    "sqlite",
+    "vanilla-js",
+    "jwt",
+    "rest-api"
+  ],
+  "author": "Internship Project",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
