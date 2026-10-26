@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopEasy - Checkout</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛍️</text></svg>">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header>
+        <nav class="navbar">
+            <a href="/" class="brand">
+                <span class="brand-icon">🛍️</span>
+                <span>ShopEasy</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link">Home</a></li>
+                <li><a href="/#catalogue" class="nav-link">Shop</a></li>
+                <span id="nav-auth-container" class="nav-auth-group">
+                    <li><a href="/login.html" class="nav-link">Login</a></li>
+                </span>
+                <li>
+                    <a href="/cart.html" class="cart-link" title="View Shopping Cart">
+                        <span>🛒 Cart</span>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div style="margin-bottom: 1.5rem;">
+            <a href="/cart.html" class="nav-link" style="display: inline-flex; align-items: center; gap: 0.35rem; padding-left: 0;">
+                ← Back to Cart
+            </a>
+            <h1 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; margin-top: 0.5rem;">Secure Checkout</h1>
+        </div>
+
+        <!-- Auth required alert -->
+        <div id="checkout-unauth" class="state-box" style="display: none;">
+            <div class="state-icon">🔒</div>
+            <h2 class="state-title">Sign in Required</h2>
+            <p class="state-desc">Please sign in to proceed with your order placement.</p>
+            <a href="/login.html?redirect=/checkout.html" class="btn-hero" style="font-size: 0.95rem; padding: 0.7rem 1.75rem;">Sign In</a>
+        </div>
+
+        <div id="checkout-layout" class="cart-layout" style="display: none;">
+            <!-- Shipping Information Form -->
+            <div class="cart-card">
+                <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem;">1. Delivery Details</h2>
+                
+                <div id="checkout-alert" class="form-alert"></div>
+
+                <form id="form-checkout">
+                    <div class="form-group">
+                        <label for="cust-name" class="form-label">Full Name</label>
+                        <input type="text" id="cust-name" class="form-input" required placeholder="John Doe">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cust-phone" class="form-label">Phone Number (10 digits)</label>
+                        <input type="tel" id="cust-phone" class="form-input" required placeholder="9876543210">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cust-address" class="form-label">Complete Street Address</label>
+                        <textarea id="cust-address" class="form-input" rows="3" required placeholder="Flat/House No., Building, Street Area"></textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label for="cust-city" class="form-label">City</label>
+                            <input type="text" id="cust-city" class="form-input" required placeholder="Mumbai">
+                        </div>
+                        <div class="form-group">
+                            <label for="cust-pincode" class="form-label">PIN Code</label>
+                            <input type="text" id="cust-pincode" class="form-input" required placeholder="400001">
+                        </div>
+                    </div>
+
+                    <h2 style="font-size: 1.25rem; font-weight: 700; margin: 1.5rem 0 1rem 0;">2. Payment Method</h2>
+                    <div style="background: #f8fafc; border: 2px solid var(--primary); border-radius: var(--radius-md); padding: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <span style="font-size: 1.5rem;">💵</span>
+                            <div>
+                                <div style="font-weight: 700;">Cash on Delivery (COD)</div>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);">Pay in cash when your package is delivered to your address.</div>
+                            </div>
+                        </div>
+                        <span class="stock-tag tag-in-stock" style="position: static;">Available</span>
+                    </div>
+
+                    <button type="submit" class="btn-checkout" id="btn-submit-order" style="margin-top: 2rem;">
+                        Place Order (Cash on Delivery)
+                    </button>
+                </form>
+            </div>
+
+            <!-- Order Summary Card -->
+            <div class="cart-summary-card">
+                <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.25rem;">Items in Order</h2>
+                <div id="checkout-items-list" style="margin-bottom: 1.25rem; max-height: 280px; overflow-y: auto;">
+                    <!-- Items preview -->
+                </div>
+
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <strong id="chk-subtotal">₹0.00</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Delivery Fee</span>
+                    <span style="color: var(--success); font-weight: 700;">FREE</span>
+                </div>
+                <div class="summary-row summary-total">
+                    <span>Total Amount</span>
+                    <span id="chk-grand-total">₹0.00</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 ShopEasy E-Commerce Store. All rights reserved.</p>
+    </footer>
+
+    <!-- Shared Modules -->
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/cart.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const unauthBox = document.getElementById('checkout-unauth');
+            const layoutBox = document.getElementById('checkout-layout');
+            const itemsList = document.getElementById('checkout-items-list');
+            const chkSubtotal = document.getElementById('chk-subtotal');
+            const chkGrandTotal = document.getElementById('chk-grand-total');
+            const formCheckout = document.getElementById('form-checkout');
+            const checkoutAlert = document.getElementById('checkout-alert');
+            const submitBtn = document.getElementById('btn-submit-order');
+
+            if (!auth.isLoggedIn()) {
+                unauthBox.style.display = 'block';
+                return;
+            }
+
+            // Prefill customer name if available
+            const user = auth.getUser();
+            if (user && user.name) {
+                document.getElementById('cust-name').value = user.name;
+            }
+
+            // Load Cart Items for confirmation
+            try {
+                const res = await api.getCart();
+                if (!res.success || !res.cart || !res.cart.items || res.cart.items.length === 0) {
+                    showToast('Your cart is empty. Please add items to checkout.', 'info');
+                    setTimeout(() => window.location.href = '/', 1200);
+                    return;
+                }
+
+                itemsList.innerHTML = '';
+                res.cart.items.forEach(it => {
+                    const row = document.createElement('div');
+                    row.style.display = 'flex';
+                    row.style.alignItems = 'center';
+                    row.style.justifyContent = 'space-between';
+                    row.style.padding = '0.5rem 0';
+                    row.style.borderBottom = '1px solid var(--border)';
+                    row.style.fontSize = '0.9rem';
+
+                    row.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <img src="${it.image_url}" style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px;">
+                            <div>
+                                <div style="font-weight: 600; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(it.name)}</div>
+                                <div style="color: var(--text-muted); font-size: 0.8rem;">Qty: ${it.quantity}</div>
+                            </div>
+                        </div>
+                        <strong>${escapeHTML(it.formatted_line_total)}</strong>
+                    `;
+                    itemsList.appendChild(row);
+                });
+
+                chkSubtotal.textContent = res.cart.formatted_grand_total;
+                chkGrandTotal.textContent = res.cart.formatted_grand_total;
+                layoutBox.style.display = 'grid';
+
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+
+            // Handle Checkout Submit
+            formCheckout.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                checkoutAlert.style.display = 'none';
+
+                const orderData = {
+                    customerName: document.getElementById('cust-name').value.trim(),
+                    customerPhone: document.getElementById('cust-phone').value.trim(),
+                    shippingAddress: document.getElementById('cust-address').value.trim(),
+                    shippingCity: document.getElementById('cust-city').value.trim(),
+                    shippingPincode: document.getElementById('cust-pincode').value.trim()
+                };
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Processing Order...';
+
+                try {
+                    const res = await api.createOrder(orderData);
+                    if (res.success && res.order) {
+                        await cartManager.updateBadge();
+                        window.location.href = `/orders.html?confirmed=${res.order.order_number}`;
+                    }
+                } catch (err) {
+                    checkoutAlert.textContent = err.message || 'Failed to place order.';
+                    checkoutAlert.className = 'form-alert form-alert-error';
+                    checkoutAlert.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Place Order (Cash on Delivery)';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

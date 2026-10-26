@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopEasy - Your Shopping Cart</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛍️</text></svg>">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header>
+        <nav class="navbar">
+            <a href="/" class="brand">
+                <span class="brand-icon">🛍️</span>
+                <span>ShopEasy</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link">Home</a></li>
+                <li><a href="/#catalogue" class="nav-link">Shop</a></li>
+                <span id="nav-auth-container" class="nav-auth-group">
+                    <li><a href="/login.html" class="nav-link">Login</a></li>
+                </span>
+                <li>
+                    <a href="/cart.html" class="cart-link active" title="View Shopping Cart">
+                        <span>🛒 Cart</span>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+            <h1 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.5px;">Shopping Cart</h1>
+            <button type="button" class="btn-logout" id="btn-clear-cart" style="display: none;">Clear Cart</button>
+        </div>
+
+        <!-- Not Authenticated Alert -->
+        <div id="cart-unauth" class="state-box" style="display: none;">
+            <div class="state-icon">🔒</div>
+            <h2 class="state-title">Please Sign In to Access Your Cart</h2>
+            <p class="state-desc">Your cart is securely stored with your customer account so you never lose your items across devices.</p>
+            <a href="/login.html?redirect=/cart.html" class="btn-hero" style="font-size: 0.95rem; padding: 0.7rem 1.75rem;">Sign In / Register</a>
+        </div>
+
+        <!-- Loading State -->
+        <div id="cart-loading" class="state-box">
+            <div class="spinner"></div>
+            <h3 class="state-title">Loading Cart...</h3>
+            <p class="state-desc">Retrieving your saved items.</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="cart-empty" class="state-box" style="display: none;">
+            <div class="state-icon">🛒</div>
+            <h2 class="state-title">Your Cart is Empty</h2>
+            <p class="state-desc">Looks like you haven't added anything to your cart yet. Explore our latest products and exclusive deals!</p>
+            <a href="/#catalogue" class="btn-hero" style="font-size: 0.95rem; padding: 0.7rem 1.75rem;">Start Shopping</a>
+        </div>
+
+        <!-- Cart Items Layout -->
+        <div id="cart-content" class="cart-layout" style="display: none;">
+            <!-- Cart Table Card -->
+            <div class="cart-card">
+                <table class="cart-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart-items-body">
+                        <!-- Dynamic Cart Items -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Order Summary Card -->
+            <div class="cart-summary-card">
+                <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.25rem;">Order Summary</h2>
+                <div class="summary-row">
+                    <span>Items Count</span>
+                    <strong id="summary-items-count">0</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <strong id="summary-subtotal">₹0.00</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Shipping</span>
+                    <span style="color: var(--success); font-weight: 700;">FREE (Cash on Delivery)</span>
+                </div>
+                <div class="summary-row summary-total">
+                    <span>Grand Total</span>
+                    <span id="summary-grand-total">₹0.00</span>
+                </div>
+                <a href="/checkout.html" class="btn-checkout" id="btn-proceed-checkout">Proceed to Checkout →</a>
+                <p style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 0.75rem;">
+                    🛡️ Secure checkout • Cash on Delivery verified
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 ShopEasy E-Commerce Store. All rights reserved.</p>
+    </footer>
+
+    <!-- Shared Modules -->
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/cart.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const unauthBox = document.getElementById('cart-unauth');
+            const loadingBox = document.getElementById('cart-loading');
+            const emptyBox = document.getElementById('cart-empty');
+            const contentBox = document.getElementById('cart-content');
+            const itemsBody = document.getElementById('cart-items-body');
+            const summaryCount = document.getElementById('summary-items-count');
+            const summarySubtotal = document.getElementById('summary-subtotal');
+            const summaryGrandTotal = document.getElementById('summary-grand-total');
+            const clearCartBtn = document.getElementById('btn-clear-cart');
+
+            if (!auth.isLoggedIn()) {
+                loadingBox.style.display = 'none';
+                unauthBox.style.display = 'block';
+                return;
+            }
+
+            async function renderCart() {
+                loadingBox.style.display = 'block';
+                emptyBox.style.display = 'none';
+                contentBox.style.display = 'none';
+                clearCartBtn.style.display = 'none';
+
+                try {
+                    const res = await api.getCart();
+                    loadingBox.style.display = 'none';
+
+                    if (res.success && res.cart && res.cart.items && res.cart.items.length > 0) {
+                        const { items, total_items, formatted_grand_total } = res.cart;
+
+                        itemsBody.innerHTML = '';
+                        items.forEach(item => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>
+                                    <div class="cart-product-cell">
+                                        <img src="${item.image_url}" alt="${escapeHTML(item.name)}" class="cart-thumb" onerror="this.src='https://placehold.co/100?text=ShopEasy';">
+                                        <div>
+                                            <a href="/product.html?id=${item.product_id}" class="cart-prod-title">${escapeHTML(item.name)}</a>
+                                            <div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHTML(item.category_name)}</div>
+                                            <div style="font-size: 0.75rem; color: ${item.stock_quantity < 5 ? 'var(--danger)' : 'var(--text-muted)'};">
+                                                Stock available: ${item.stock_quantity}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><strong>${escapeHTML(item.formatted_unit_price)}</strong></td>
+                                <td>
+                                    <div class="qty-control">
+                                        <button type="button" class="qty-btn btn-dec" data-id="${item.id}" data-qty="${item.quantity - 1}">-</button>
+                                        <span class="qty-val">${item.quantity}</span>
+                                        <button type="button" class="qty-btn btn-inc" data-id="${item.id}" data-qty="${item.quantity + 1}" ${item.quantity >= item.stock_quantity ? 'disabled' : ''}>+</button>
+                                    </div>
+                                </td>
+                                <td><strong>${escapeHTML(item.formatted_line_total)}</strong></td>
+                                <td>
+                                    <button type="button" class="btn-logout btn-remove" data-id="${item.id}" title="Remove item">🗑️</button>
+                                </td>
+                            `;
+
+                            // Decrement
+                            tr.querySelector('.btn-dec').addEventListener('click', async (e) => {
+                                const newQty = parseInt(e.target.dataset.qty, 10);
+                                await updateQty(item.id, newQty);
+                            });
+
+                            // Increment
+                            tr.querySelector('.btn-inc').addEventListener('click', async (e) => {
+                                const newQty = parseInt(e.target.dataset.qty, 10);
+                                await updateQty(item.id, newQty);
+                            });
+
+                            // Remove
+                            tr.querySelector('.btn-remove').addEventListener('click', async () => {
+                                if (confirm(`Remove "${item.name}" from your cart?`)) {
+                                    try {
+                                        await api.removeCartItem(item.id);
+                                        showToast('Item removed.', 'info');
+                                        await cartManager.updateBadge();
+                                        renderCart();
+                                    } catch (err) {
+                                        showToast(err.message, 'error');
+                                    }
+                                }
+                            });
+
+                            itemsBody.appendChild(tr);
+                        });
+
+                        summaryCount.textContent = total_items;
+                        summarySubtotal.textContent = formatted_grand_total;
+                        summaryGrandTotal.textContent = formatted_grand_total;
+
+                        contentBox.style.display = 'grid';
+                        clearCartBtn.style.display = 'block';
+                    } else {
+                        emptyBox.style.display = 'block';
+                    }
+                } catch (err) {
+                    loadingBox.style.display = 'none';
+                    showToast(err.message || 'Failed to load cart.', 'error');
+                }
+            }
+
+            async function updateQty(cartItemId, newQty) {
+                try {
+                    await api.updateCartItem(cartItemId, newQty);
+                    await cartManager.updateBadge();
+                    renderCart();
+                } catch (err) {
+                    showToast(err.message || 'Could not update quantity.', 'error');
+                }
+            }
+
+            clearCartBtn.addEventListener('click', async () => {
+                if (confirm('Are you sure you want to remove all items from your cart?')) {
+                    try {
+                        await api.clearCart();
+                        showToast('Cart cleared.', 'info');
+                        await cartManager.updateBadge();
+                        renderCart();
+                    } catch (err) {
+                        showToast(err.message, 'error');
+                    }
+                }
+            });
+
+            // Initial render
+            renderCart();
+        });
+    </script>
+</body>
+</html>

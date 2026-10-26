@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopEasy - Product Details</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛍️</text></svg>">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header>
+        <nav class="navbar">
+            <a href="/" class="brand">
+                <span class="brand-icon">🛍️</span>
+                <span>ShopEasy</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link">Home</a></li>
+                <li><a href="/#catalogue" class="nav-link">Shop</a></li>
+                <span id="nav-auth-container" class="nav-auth-group">
+                    <li><a href="/login.html" class="nav-link">Login</a></li>
+                </span>
+                <li>
+                    <a href="/cart.html" class="cart-link" title="View Shopping Cart">
+                        <span>🛒 Cart</span>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div style="margin-bottom: 1.5rem;">
+            <a href="/#catalogue" class="nav-link" style="display: inline-flex; align-items: center; gap: 0.35rem; padding-left: 0;">
+                ← Back to Catalogue
+            </a>
+        </div>
+
+        <!-- Loading State -->
+        <div id="product-loading" class="state-box">
+            <div class="spinner"></div>
+            <h3 class="state-title">Loading Product Information...</h3>
+            <p class="state-desc">Fetching specifications and real-time inventory.</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="product-error" class="state-box" style="display: none;">
+            <div class="state-icon">🔍</div>
+            <h2 class="state-title">Product Not Found</h2>
+            <p class="state-desc" id="product-error-desc">We couldn't locate the product you requested. It may have been discontinued or moved.</p>
+            <a href="/#catalogue" class="btn-hero" style="font-size: 0.95rem; padding: 0.7rem 1.75rem;">Browse Catalogue</a>
+        </div>
+
+        <!-- Product Details Container -->
+        <div id="product-details" class="product-detail-layout" style="display: none;">
+            <div class="detail-img-box">
+                <img id="detail-image" src="" alt="Product Image" class="detail-img" onerror="this.src='https://placehold.co/600x400?text=ShopEasy+Product';">
+            </div>
+
+            <div class="detail-info">
+                <div class="detail-category" id="detail-category">Electronics</div>
+                <h1 class="detail-title" id="detail-title">Product Title</h1>
+
+                <div style="margin-bottom: 1rem;">
+                    <span id="detail-stock-badge" class="stock-tag tag-in-stock" style="position: static;">In Stock</span>
+                </div>
+
+                <div class="detail-price" id="detail-price">₹0.00</div>
+
+                <p class="detail-desc" id="detail-desc">
+                    Product description details.
+                </p>
+
+                <div style="display: flex; align-items: center; gap: 1.25rem; margin-top: auto; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                        <label for="detail-qty" style="font-size: 0.85rem; font-weight: 700; color: var(--text-secondary);">Quantity</label>
+                        <select id="detail-qty" class="form-input" style="width: 80px; padding: 0.5rem;">
+                            <option value="1">1</option>
+                        </select>
+                    </div>
+
+                    <button type="button" class="btn-primary" id="btn-detail-add-cart" style="flex: 1; padding: 0.85rem; font-size: 1.05rem;">
+                        🛒 Add to Cart
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 ShopEasy E-Commerce Store. All rights reserved.</p>
+    </footer>
+
+    <!-- Shared Modules -->
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/cart.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const productId = params.get('id');
+
+            const loadingBox = document.getElementById('product-loading');
+            const errorBox = document.getElementById('product-error');
+            const detailsBox = document.getElementById('product-details');
+
+            const detailImg = document.getElementById('detail-image');
+            const detailCategory = document.getElementById('detail-category');
+            const detailTitle = document.getElementById('detail-title');
+            const detailStock = document.getElementById('detail-stock-badge');
+            const detailPrice = document.getElementById('detail-price');
+            const detailDesc = document.getElementById('detail-desc');
+            const detailQty = document.getElementById('detail-qty');
+            const addBtn = document.getElementById('btn-detail-add-cart');
+
+            if (!productId) {
+                loadingBox.style.display = 'none';
+                errorBox.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await api.getProduct(productId);
+                loadingBox.style.display = 'none';
+
+                if (res.success && res.product) {
+                    const p = res.product;
+                    document.title = `${p.name} - ShopEasy`;
+
+                    detailImg.src = p.image_url;
+                    detailImg.alt = p.name;
+                    detailCategory.textContent = p.category_name;
+                    detailTitle.textContent = p.name;
+                    detailPrice.textContent = p.formatted_price;
+                    detailDesc.textContent = p.description;
+
+                    if (p.in_stock) {
+                        detailStock.className = 'stock-tag tag-in-stock';
+                        detailStock.textContent = `In Stock (${p.stock_quantity} available)`;
+                        addBtn.disabled = false;
+
+                        // Populate quantity select up to available stock (max 10)
+                        detailQty.innerHTML = '';
+                        const maxSelectable = Math.min(10, p.stock_quantity);
+                        for (let i = 1; i <= maxSelectable; i++) {
+                            const opt = document.createElement('option');
+                            opt.value = i;
+                            opt.textContent = i;
+                            detailQty.appendChild(opt);
+                        }
+                    } else {
+                        detailStock.className = 'stock-tag tag-out-of-stock';
+                        detailStock.textContent = 'Out of Stock';
+                        addBtn.disabled = true;
+                        addBtn.textContent = 'Out of Stock';
+                        detailQty.disabled = true;
+                    }
+
+                    addBtn.addEventListener('click', async () => {
+                        const qty = parseInt(detailQty.value, 10) || 1;
+                        addBtn.disabled = true;
+                        addBtn.textContent = 'Adding to Cart...';
+                        await cartManager.addItem(p.id, qty, p.name);
+                        addBtn.disabled = false;
+                        addBtn.innerHTML = '🛒 Add to Cart';
+                    });
+
+                    detailsBox.style.display = 'grid';
+                } else {
+                    errorBox.style.display = 'block';
+                }
+            } catch (err) {
+                loadingBox.style.display = 'none';
+                errorBox.style.display = 'block';
+                document.getElementById('product-error-desc').textContent = err.message || 'Unable to load product.';
+            }
+        });
+    </script>
+</body>
+</html>

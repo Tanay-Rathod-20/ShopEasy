@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopEasy - My Orders</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛍️</text></svg>">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header>
+        <nav class="navbar">
+            <a href="/" class="brand">
+                <span class="brand-icon">🛍️</span>
+                <span>ShopEasy</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link">Home</a></li>
+                <li><a href="/#catalogue" class="nav-link">Shop</a></li>
+                <span id="nav-auth-container" class="nav-auth-group">
+                    <li><a href="/login.html" class="nav-link">Login</a></li>
+                </span>
+                <li>
+                    <a href="/cart.html" class="cart-link" title="View Shopping Cart">
+                        <span>🛒 Cart</span>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Order Confirmation Banner (shown when arriving after checkout) -->
+        <div id="confirmation-banner" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 2rem; text-align: center;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
+            <h2 style="color: #047857; font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem;">Order Placed Successfully!</h2>
+            <p style="color: #065f46; font-size: 1rem; max-width: 600px; margin: 0 auto;">
+                Thank you for shopping with ShopEasy! Your order <strong id="confirmed-order-number">ORD-XXXX</strong> has been received and will be delivered with <strong>Cash on Delivery</strong>.
+            </p>
+        </div>
+
+        <h1 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 1.5rem;">My Orders</h1>
+
+        <!-- Not Authenticated -->
+        <div id="orders-unauth" class="state-box" style="display: none;">
+            <div class="state-icon">🔒</div>
+            <h2 class="state-title">Sign In Required</h2>
+            <p class="state-desc">Please log in to view your order history and track shipments.</p>
+            <a href="/login.html?redirect=/orders.html" class="btn-hero" style="font-size: 0.95rem; padding: 0.7rem 1.75rem;">Sign In</a>
+        </div>
+
+        <!-- Loading State -->
+        <div id="orders-loading" class="state-box">
+            <div class="spinner"></div>
+            <h3 class="state-title">Loading Your Orders...</h3>
+            <p class="state-desc">Fetching your purchase history.</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="orders-empty" class="state-box" style="display: none;">
+            <div class="state-icon">📦</div>
+            <h2 class="state-title">No Orders Yet</h2>
+            <p class="state-desc">You haven't placed any orders with ShopEasy yet. Start exploring our catalogue!</p>
+            <a href="/#catalogue" class="btn-hero" style="font-size: 0.95rem; padding: 0.7rem 1.75rem;">Browse Products</a>
+        </div>
+
+        <!-- Orders List -->
+        <div id="orders-list" style="display: none; display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Dynamic Order Cards -->
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 ShopEasy E-Commerce Store. All rights reserved.</p>
+    </footer>
+
+    <!-- Shared Modules -->
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/cart.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const confirmedOrderNumber = params.get('confirmed');
+
+            if (confirmedOrderNumber) {
+                const confBanner = document.getElementById('confirmation-banner');
+                const confNum = document.getElementById('confirmed-order-number');
+                confNum.textContent = confirmedOrderNumber;
+                confBanner.style.display = 'block';
+            }
+
+            const unauthBox = document.getElementById('orders-unauth');
+            const loadingBox = document.getElementById('orders-loading');
+            const emptyBox = document.getElementById('orders-empty');
+            const ordersList = document.getElementById('orders-list');
+
+            if (!auth.isLoggedIn()) {
+                loadingBox.style.display = 'none';
+                unauthBox.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await api.getOrders();
+                loadingBox.style.display = 'none';
+
+                if (res.success && res.orders && res.orders.length > 0) {
+                    ordersList.innerHTML = '';
+
+                    res.orders.forEach(order => {
+                        const orderCard = document.createElement('div');
+                        orderCard.className = 'cart-card';
+                        orderCard.style.marginBottom = '1.25rem';
+
+                        // Status Color
+                        let statusPillClass = 'tag-in-stock';
+                        if (order.status === 'Cancelled') statusPillClass = 'tag-out-of-stock';
+
+                        // Format order items table
+                        let itemsHtml = order.items.map(it => `
+                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px dashed var(--border);">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <img src="${it.image_url || 'https://placehold.co/50'}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px;">
+                                    <div>
+                                        <div style="font-weight: 600;">${escapeHTML(it.product_name)}</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHTML(it.formatted_unit_price)} × ${it.quantity}</div>
+                                    </div>
+                                </div>
+                                <strong>${escapeHTML(it.formatted_subtotal)}</strong>
+                            </div>
+                        `).join('');
+
+                        orderCard.innerHTML = `
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); margin-bottom: 0.75rem;">
+                                <div>
+                                    <strong style="font-size: 1.1rem; color: var(--primary);">${escapeHTML(order.order_number)}</strong>
+                                    <span style="font-size: 0.85rem; color: var(--text-muted); margin-left: 0.75rem;">Placed on ${new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                </div>
+                                <span class="stock-tag ${statusPillClass}" style="position: static;">
+                                    ● ${escapeHTML(order.status)}
+                                </span>
+                            </div>
+
+                            <div style="margin-bottom: 1rem;">
+                                ${itemsHtml}
+                            </div>
+
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding-top: 0.5rem; font-size: 0.9rem;">
+                                <div style="color: var(--text-secondary);">
+                                    📍 <strong>Delivery to:</strong> ${escapeHTML(order.customer_name)}, ${escapeHTML(order.shipping_address)}, ${escapeHTML(order.shipping_city)} - ${escapeHTML(order.shipping_pincode)}
+                                </div>
+                                <div style="font-size: 1.15rem; font-weight: 800;">
+                                    Total: <span style="color: var(--primary);">${escapeHTML(order.formatted_total)}</span>
+                                    <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted); display: block; text-align: right;">(Cash on Delivery)</span>
+                                </div>
+                            </div>
+                        `;
+
+                        ordersList.appendChild(orderCard);
+                    });
+
+                    ordersList.style.display = 'block';
+                } else {
+                    emptyBox.style.display = 'block';
+                }
+            } catch (err) {
+                loadingBox.style.display = 'none';
+                showToast(err.message || 'Failed to load orders.', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

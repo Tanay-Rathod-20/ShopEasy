@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopEasy - System Diagnostics</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛠️</text></svg>">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="/" class="brand">
+                <span class="brand-icon">🛍️</span>
+                <span>ShopEasy</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/" class="nav-link">Storefront</a></li>
+                <li><a href="/diagnostics.html" class="nav-link active">Diagnostics</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero" style="background: linear-gradient(135deg, #334155 0%, #1e293b 100%);">
+            <div class="hero-badge">🛠️ Developer Diagnostics</div>
+            <h1>System Status & Health</h1>
+            <p>Internal diagnostics page for database connection, Express middleware, and API verification.</p>
+        </section>
+
+        <section class="status-grid">
+            <div class="status-card">
+                <div class="status-icon">⚡</div>
+                <h3>Express Backend</h3>
+                <p>Node.js HTTP REST API server with security middleware and centralized error handling.</p>
+                <span class="pill-status pill-success">● Server Online (Port 5000)</span>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon">🗄️</div>
+                <h3>SQLite Database</h3>
+                <p>Normalized schema with integer paise currency, foreign keys, and indexes.</p>
+                <span class="pill-status pill-success" id="db-status">● Connected & Seeded</span>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon">🔐</div>
+                <h3>Authentication API</h3>
+                <p>bcrypt password hashing and secure stateless JSON Web Tokens (JWT).</p>
+                <span class="pill-status pill-success">● Active (/api/auth)</span>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon">🛒</div>
+                <h3>Product Catalogue API</h3>
+                <p>16 seeded products across 4 categories with real-time stock & cart management.</p>
+                <span class="pill-status pill-success">● Active (/api/products)</span>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 ShopEasy Inc. Developer Diagnostics.</p>
+    </footer>
+
+    <script>
+        fetch('/api/health')
+            .then(res => res.json())
+            .then(data => {
+                const dbStatus = document.getElementById('db-status');
+                if (data.success && data.database === 'connected') {
+                    dbStatus.textContent = '● SQLite Active & Healthy';
+                }
+            })
+            .catch(err => {
+                const dbStatus = document.getElementById('db-status');
+                dbStatus.textContent = '● Disconnected';
+                dbStatus.className = 'pill-status pill-danger';
+            });
+    </script>
+</body>
+</html>

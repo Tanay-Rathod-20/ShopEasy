@@ -3,81 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShopEasy - Modern E-Commerce Platform</title>
+    <title>ShopEasy - Modern Online Shopping Store</title>
     <link rel="stylesheet" href="/css/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛍️</text></svg>">
 </head>
 <body>
+    <!-- Top Navigation Bar -->
     <header>
         <nav class="navbar">
             <a href="/" class="brand">
                 <span class="brand-icon">🛍️</span>
                 <span>ShopEasy</span>
             </a>
+
             <ul class="nav-links">
                 <li><a href="/" class="nav-link active">Home</a></li>
                 <li><a href="#catalogue" class="nav-link">Shop</a></li>
-                <li><a href="/login.html" class="nav-link">Login</a></li>
-                <li><a href="/cart.html" class="nav-link">Cart <span class="badge" id="cart-count">0</span></a></li>
+                <span id="nav-auth-container" class="nav-auth-group">
+                    <li><a href="/login.html" class="nav-link" id="nav-login-link">Login</a></li>
+                </span>
+                <li>
+                    <a href="/cart.html" class="cart-link" title="View Shopping Cart">
+                        <span>🛒 Cart</span>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </a>
+                </li>
             </ul>
         </nav>
     </header>
 
     <main>
+        <!-- Shopping Hero Section -->
         <section class="hero">
-            <div class="hero-badge">🚀 Stage 2 Live Deployment</div>
-            <h1>Welcome to ShopEasy</h1>
-            <p>A full-stack e-commerce web platform engineered with vanilla JavaScript, Node.js Express, and SQLite.</p>
+            <div class="hero-badge">✨ Premium Collection 2026</div>
+            <h1>Quality Goods Delivered Right to Your Doorstep</h1>
+            <p>Explore handpicked electronics, premium fashion, home essentials, and stationery at unbeatable prices with Cash on Delivery.</p>
+            <div>
+                <a href="#catalogue" class="btn-hero">Shop Catalogue ↓</a>
+            </div>
         </section>
 
-        <section class="status-grid">
-            <div class="status-card">
-                <div class="status-icon">⚡</div>
-                <h3>Express Backend</h3>
-                <p>Node.js HTTP REST API server with security middleware and centralized error handling.</p>
-                <span class="pill-status pill-success">● Server Online (Port 5000)</span>
+        <!-- Product Catalogue & Filtering -->
+        <section id="catalogue">
+            <div class="catalogue-header">
+                <div class="catalogue-top-row">
+                    <h2 class="catalogue-title">Featured Products</h2>
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="search-input" class="search-input" placeholder="Search products by name or details..." autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Dynamic Category Filter Pills -->
+                <div class="category-pills" id="category-pills">
+                    <button class="pill-btn active" data-category="">All Products</button>
+                    <!-- Categories will be injected here dynamically -->
+                </div>
             </div>
 
-            <div class="status-card">
-                <div class="status-icon">🗄️</div>
-                <h3>SQLite Database</h3>
-                <p>Normalized schema with integer paise currency, foreign keys, and indexes.</p>
-                <span class="pill-status pill-success" id="db-status">● Connected & Seeded</span>
+            <!-- Loading State -->
+            <div id="catalogue-loading" class="state-box">
+                <div class="spinner"></div>
+                <h3 class="state-title">Loading Catalogue...</h3>
+                <p class="state-desc">Fetching available products from the store.</p>
             </div>
 
-            <div class="status-card">
-                <div class="status-icon">🔐</div>
-                <h3>Authentication</h3>
-                <p>bcrypt password hashing and secure stateless JSON Web Tokens (JWT).</p>
-                <span class="pill-status pill-info">Ready for Stage 3</span>
+            <!-- Error State -->
+            <div id="catalogue-error" class="state-box" style="display: none;">
+                <div class="state-icon">⚠️</div>
+                <h3 class="state-title">Unable to Load Products</h3>
+                <p class="state-desc" id="error-message">Something went wrong while connecting to the store server.</p>
+                <button class="btn-secondary" id="btn-retry">Retry Connection</button>
             </div>
 
-            <div class="status-card">
-                <div class="status-icon">🛒</div>
-                <h3>Shop Catalogue</h3>
-                <p>16 seeded products across 4 categories with real-time stock & cart management.</p>
-                <span class="pill-status pill-info">Connecting in Stage 4</span>
+            <!-- Empty State -->
+            <div id="catalogue-empty" class="state-box" style="display: none;">
+                <div class="state-icon">🔎</div>
+                <h3 class="state-title">No Matching Products Found</h3>
+                <p class="state-desc">Try adjusting your search keywords or switching to another category.</p>
+                <button class="btn-secondary" id="btn-clear-filters">Reset Filters</button>
+            </div>
+
+            <!-- Products Grid -->
+            <div id="product-grid" class="product-grid" style="display: none;">
+                <!-- Product cards injected dynamically -->
             </div>
         </section>
     </main>
 
     <footer>
-        <p>&copy; 2026 ShopEasy Inc. Individual Internship Full-Stack Project.</p>
+        <p>&copy; 2026 ShopEasy E-Commerce Store. All rights reserved.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #94a3b8;">
+            <a href="/diagnostics.html" style="color: inherit; text-decoration: underline;">Developer Diagnostics</a>
+        </p>
     </footer>
 
+    <!-- Shared Modules -->
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/cart.js"></script>
+
+    <!-- Homepage Controller -->
     <script>
-        // Check health endpoint automatically
-        fetch('/api/health')
-            .then(res => res.json())
-            .then(data => {
-                const dbStatus = document.getElementById('db-status');
-                if (data.success && data.database === 'connected') {
-                    dbStatus.textContent = '● SQLite Active & Healthy';
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('search-input');
+            const categoryPillsContainer = document.getElementById('category-pills');
+            const productGrid = document.getElementById('product-grid');
+            const loadingBox = document.getElementById('catalogue-loading');
+            const errorBox = document.getElementById('catalogue-error');
+            const emptyBox = document.getElementById('catalogue-empty');
+            const errorMessage = document.getElementById('error-message');
+            const retryBtn = document.getElementById('btn-retry');
+            const clearFiltersBtn = document.getElementById('btn-clear-filters');
+
+            let currentCategory = '';
+            let currentSearch = '';
+            let searchDebounceTimer = null;
+
+            // 1. Load Categories
+            async function loadCategories() {
+                try {
+                    const res = await api.getCategories();
+                    if (res.success && res.categories) {
+                        res.categories.forEach(cat => {
+                            const btn = document.createElement('button');
+                            btn.className = 'pill-btn';
+                            btn.dataset.category = cat.slug;
+                            btn.textContent = `${cat.name} (${cat.product_count})`;
+                            btn.addEventListener('click', () => {
+                                document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+                                btn.classList.add('active');
+                                currentCategory = cat.slug;
+                                loadProducts();
+                            });
+                            categoryPillsContainer.appendChild(btn);
+                        });
+                    }
+                } catch (err) {
+                    console.warn('Could not load categories:', err);
                 }
-            })
-            .catch(err => {
-                console.error('Health check failed:', err);
+            }
+
+            // 2. Load Products with filters
+            async function loadProducts() {
+                loadingBox.style.display = 'block';
+                errorBox.style.display = 'none';
+                emptyBox.style.display = 'none';
+                productGrid.style.display = 'none';
+
+                try {
+                    const res = await api.getProducts({
+                        category: currentCategory,
+                        search: currentSearch,
+                        limit: 30
+                    });
+
+                    loadingBox.style.display = 'none';
+
+                    if (res.success && res.products && res.products.length > 0) {
+                        renderProductGrid(res.products);
+                        productGrid.style.display = 'grid';
+                    } else {
+                        emptyBox.style.display = 'block';
+                    }
+                } catch (err) {
+                    loadingBox.style.display = 'none';
+                    errorBox.style.display = 'block';
+                    errorMessage.textContent = err.message || 'Failed to load products.';
+                }
+            }
+
+            // 3. Render Product Cards
+            function renderProductGrid(products) {
+                productGrid.innerHTML = '';
+
+                products.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+
+                    const stockTag = p.in_stock 
+                        ? `<span class="stock-tag tag-in-stock">In Stock (${p.stock_quantity})</span>`
+                        : `<span class="stock-tag tag-out-of-stock">Out of Stock</span>`;
+
+                    const addBtnDisabled = !p.in_stock ? 'disabled' : '';
+                    const addBtnText = !p.in_stock ? 'Out of Stock' : 'Add to Cart';
+
+                    card.innerHTML = `
+                        <div class="card-image-wrap">
+                            <img src="${p.image_url}" alt="${escapeHTML(p.name)}" class="card-image" loading="lazy" onerror="this.src='https://placehold.co/600x400?text=ShopEasy+Product';">
+                            ${stockTag}
+                        </div>
+                        <div class="card-body">
+                            <span class="card-category">${escapeHTML(p.category_name)}</span>
+                            <a href="/product.html?id=${p.id}" class="card-title">${escapeHTML(p.name)}</a>
+                            <p class="card-desc">${escapeHTML(p.description)}</p>
+                            <div class="card-footer">
+                                <span class="card-price">${escapeHTML(p.formatted_price)}</span>
+                                <button type="button" class="btn-add-cart" data-id="${p.id}" data-name="${escapeHTML(p.name)}" ${addBtnDisabled}>
+                                    🛒 ${addBtnText}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Handle Add to Cart click
+                    const addBtn = card.querySelector('.btn-add-cart');
+                    if (p.in_stock) {
+                        addBtn.addEventListener('click', async () => {
+                            addBtn.disabled = true;
+                            addBtn.textContent = 'Adding...';
+                            await cartManager.addItem(p.id, 1, p.name);
+                            addBtn.disabled = false;
+                            addBtn.innerHTML = '🛒 Add to Cart';
+                        });
+                    }
+
+                    productGrid.appendChild(card);
+                });
+            }
+
+            // Search input listener with 300ms debounce
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(() => {
+                    currentSearch = e.target.value.trim();
+                    loadProducts();
+                }, 300);
             });
+
+            // "All Products" pill click
+            categoryPillsContainer.querySelector('.pill-btn').addEventListener('click', (e) => {
+                document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentCategory = '';
+                loadProducts();
+            });
+
+            // Retry button
+            retryBtn.addEventListener('click', () => {
+                loadProducts();
+            });
+
+            // Reset filters button
+            clearFiltersBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                currentSearch = '';
+                currentCategory = '';
+                document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+                categoryPillsContainer.querySelector('.pill-btn').classList.add('active');
+                loadProducts();
+            });
+
+            // Initial load
+            loadCategories();
+            loadProducts();
+        });
     </script>
 </body>
 </html>
